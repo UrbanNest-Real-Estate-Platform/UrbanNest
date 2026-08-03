@@ -12,6 +12,8 @@ import BuilderLogin from "../pages/Builder/BuilderLogin";
 import BuilderRegister from "../pages/Builder/BuilderRegister";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Search from "../pages/Search/Search";
+import PropertyDetail from "../pages/PropertyDetail/PropertyDetail";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -48,6 +50,24 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <Search />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/property/:id"
+          element={
+            <ProtectedRoute>
+              <PropertyDetail />
             </ProtectedRoute>
           }
         />

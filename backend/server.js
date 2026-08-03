@@ -6,6 +6,8 @@ const cookieParser = require('cookie-parser');
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes.js");
+const propertyRoutes = require("./routes/propertyRoutes.js");
+const userRoutes = require("./routes/userRoutes.js");
 
 dotenv.config();
 connectDB();
@@ -24,6 +26,8 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
     res.send("UrbanNest Backend Running");

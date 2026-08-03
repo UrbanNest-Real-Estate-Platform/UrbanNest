@@ -3,13 +3,13 @@ import { Navigate } from "react-router-dom";
 function BuilderProtectedRoute({ children }) {
 
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
+    const builder = JSON.parse(localStorage.getItem("builder"));
 
     if (!token) {
         return <Navigate to="/login/builder" replace />;
     }
 
-    if (!user || user.role !== "builder") {
+    if (!builder) {
         return <Navigate to="/" replace />;
     }
 
