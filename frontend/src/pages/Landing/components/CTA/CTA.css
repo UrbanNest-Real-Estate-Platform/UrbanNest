@@ -1,0 +1,98 @@
+.cta {
+    padding: 110px 8%;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: white;
+    text-align: center;
+}
+
+.cta-container {
+    max-width: 900px;
+    margin: auto;
+}
+
+.cta-tag {
+    display: inline-block;
+    padding: 8px 18px;
+    background: rgba(255, 255, 255, .15);
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.cta h2 {
+    margin-top: 25px;
+    font-size: clamp(30px, 5vw, 52px);
+    line-height: 1.25;
+}
+
+.cta p {
+    margin: 25px auto 45px;
+    max-width: 650px;
+    color: #dbeafe;
+    line-height: 1.8;
+    font-size: clamp(15px, 2vw, 18px);
+}
+
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* CTA-specific primary button override (white on blue bg) */
+.cta .primary-btn {
+    background: white;
+    color: #2563EB;
+}
+
+.cta .primary-btn:hover {
+    background: #f0f4ff;
+    transform: translateY(-3px);
+}
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    padding: 16px 34px;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .3s;
+    text-decoration: none;
+}
+
+.secondary-btn:hover {
+    background: white;
+    color: #2563EB;
+}
+
+@media (max-width: 768px) {
+    .cta {
+        padding: 80px 6%;
+    }
+
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cta .primary-btn,
+    .secondary-btn {
+        width: 100%;
+        max-width: 340px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .cta {
+        padding: 60px 5%;
+    }
+}

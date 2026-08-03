@@ -1,0 +1,165 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Poppins",sans-serif;
+}
+
+.register-page{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#f4f7fc;
+    padding:40px 20px;
+}
+
+.register-card{
+    width:100%;
+    max-width:760px;
+    background:#fff;
+    border-radius:22px;
+    padding:45px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:28px;
+}
+
+.logo-img{
+    width:64px;
+    height:64px;
+    border-radius:16px;
+    object-fit:cover;
+}
+
+.logo-text{
+    font-size:42px;
+    font-weight:700;
+    color:#111827;
+}
+
+.logo-text span{
+    color:#3157f5;
+}
+
+.register-card h1{
+    text-align:center;
+    font-size:42px;
+    color:#16213e;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#64748b;
+    font-size:18px;
+    margin-bottom:40px;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px;
+}
+
+.full-width{
+    grid-column:1/3;
+}
+
+.input-group{
+    display:flex;
+    flex-direction:column;
+}
+
+.input-group label{
+    font-size:15px;
+    font-weight:600;
+    color:#22304d;
+    margin-bottom:8px;
+}
+
+.input-group input,
+.input-group select{
+    height:56px;
+    border:1px solid #d8dee9;
+    border-radius:12px;
+    padding:0 18px;
+    font-size:16px;
+    outline:none;
+    transition:.3s;
+    background:#fff;
+}
+
+.input-group input:focus,
+.input-group select:focus{
+    border-color:#3157f5;
+    box-shadow:0 0 0 4px rgba(49,87,245,.12);
+}
+
+.register-btn{
+    width:100%;
+    margin-top:32px;
+    height:58px;
+    border:none;
+    border-radius:12px;
+    background:#3157f5;
+    color:#fff;
+    font-size:18px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.register-btn:hover{
+    background:#2248df;
+}
+
+.bottom-text{
+    margin-top:28px;
+    text-align:center;
+    color:#64748b;
+    font-size:16px;
+}
+
+.bottom-text a{
+    color:#3157f5;
+    font-weight:600;
+    text-decoration:none;
+}
+
+.bottom-text a:hover{
+    text-decoration:underline;
+}
+
+@media(max-width:768px){
+
+    .register-card{
+        padding:30px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .full-width{
+        grid-column:auto;
+    }
+
+    .logo-text{
+        font-size:34px;
+    }
+
+    .register-card h1{
+        font-size:34px;
+    }
+
+    .subtitle{
+        font-size:16px;
+    }
+}
