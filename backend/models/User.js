@@ -28,19 +28,7 @@ const userSchema = new mongoose.Schema(
     cityOfResidence: {
         type: String,
         required: true
-    },
-
-    role: {
-        type: String,
-        enum: ["user", "builder", "admin"],
-        default: "user"
-    },
-
-    profileImage: {
-        type: String,
-        default: "default_avatar.webp"
     }
-
 },
 {
     timestamps: true

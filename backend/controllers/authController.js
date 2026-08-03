@@ -2,10 +2,11 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const validator = require("validator");
 const generateToken = require("../utils/generateToken");
+const Builder = require('../models/Builder');
 
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password, confirmPassword, phoneNumber, cityOfResidence, role} = req.body;
+        const { name, email, password, confirmPassword, phoneNumber, cityOfResidence} = req.body;
 
         if(
             !name ||
@@ -13,8 +14,7 @@ const registerUser = async (req, res) => {
             !password ||
             !confirmPassword ||
             !phoneNumber ||
-            !cityOfResidence || 
-            !role
+            !cityOfResidence
         ){
             return res.status(400).json({
                 success : false,
@@ -69,8 +69,6 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
             phoneNumber,
             cityOfResidence,
-            role,
-            profileImage: "/uploads/public/default_avatar.webp"
         });
 
         res.status(201).json({
@@ -82,8 +80,6 @@ const registerUser = async (req, res) => {
                 email: user.email,
                 phoneNumber: user.phoneNumber,
                 cityOfResidence: user.cityOfResidence,
-                role: user.role,
-                profileImage: user.profileImage
             }
         });
 
@@ -134,13 +130,13 @@ const loginUser = async (req, res) => {
             });
         }
 
-        const token = generateToken(user._id, user.role);
+        const token = generateToken(user._id, 'user');
 
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 Days
+            maxAge: 7 * 24 * 60 * 60 * 1000 
         });
 
         res.status(200).json({
@@ -151,14 +147,215 @@ const loginUser = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role,
-                profileImage: user.profileImage
+                phoneNumber: user.phoneNumber,
+                cityOfResidence: user.cityOfResidence,
             }
         });
 
     } catch (error) {
 
         console.error("Login Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+
+    }
+};
+
+const registerBuilder = async (req, res) => {
+    try {
+
+        const {
+            companyName,
+            registrationNumber,
+            ownerName,
+            contactPersonName,
+            email,
+            password,
+            confirmPassword,
+            phoneNumber,
+            websiteUrl,
+            officeAddress
+        } = req.body;
+
+        if (
+            !companyName ||
+            !registrationNumber ||
+            !ownerName ||
+            !contactPersonName ||
+            !email ||
+            !password ||
+            !confirmPassword ||
+            !phoneNumber ||
+            !officeAddress
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Please fill all required fields"
+            });
+        }
+
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+
+        if (!/^\d{10}$/.test(phoneNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number must be exactly 10 digits"
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters long"
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match"
+            });
+        }
+
+        const existingEmail = await Builder.findOne({ email });
+
+        if (existingEmail) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already registered"
+            });
+        }
+
+        const existingRegistration = await Builder.findOne({
+            registrationNumber
+        });
+
+        if (existingRegistration) {
+            return res.status(400).json({
+                success: false,
+                message: "Registration number already exists"
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const builder = await Builder.create({
+            companyName,
+            registrationNumber,
+            ownerName,
+            contactPersonName,
+            email,
+            password: hashedPassword,
+            phoneNumber,
+            websiteUrl,
+            officeAddress
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Builder account created successfully",
+            builder: {
+                id: builder._id,
+                companyName: builder.companyName,
+                registrationNumber: builder.registrationNumber,
+                ownerName: builder.ownerName,
+                contactPersonName: builder.contactPersonName,
+                email: builder.email,
+                phoneNumber: builder.phoneNumber,
+                websiteUrl: builder.websiteUrl,
+                officeAddress: builder.officeAddress
+            }
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+
+    }
+};
+
+const loginBuilder = async (req, res) => {
+
+    try {
+
+        const email = req.body.email?.trim();
+        const password = req.body.password;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide email and password"
+            });
+        }
+
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+
+        const builder = await Builder.findOne({ email });
+
+        if (!builder) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, builder.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        const token = generateToken(builder._id, "builder");
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token,
+            builder: {
+                id: builder._id,
+                companyName: builder.companyName,
+                registrationNumber: builder.registrationNumber,
+                ownerName: builder.ownerName,
+                contactPersonName: builder.contactPersonName,
+                email: builder.email,
+                phoneNumber: builder.phoneNumber,
+                websiteUrl: builder.websiteUrl,
+                officeAddress: builder.officeAddress
+            }
+        });
+
+    } catch (error) {
+
+        console.error(error);
 
         res.status(500).json({
             success: false,
@@ -194,6 +391,8 @@ const logoutUser = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
+    registerBuilder,
+    loginBuilder,
     getCurrentUser,
     logoutUser
 };
