@@ -25,10 +25,8 @@ const protect = async (req, res, next) => {
         if (decoded.role === "user") {
             req.user = await User.findById(decoded.id).select("-password");
         } else {
-            req.user = await Builder.findById(decoded.id).select("-password");
+            req.builder = await Builder.findById(decoded.id).select("-password");
         }
-
-        req.role = decoded.role;
 
         next();
 

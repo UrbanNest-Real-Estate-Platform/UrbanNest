@@ -5,7 +5,7 @@ const User = require("../models/User");
 // @access  Private
 const saveProperty = async (req, res) => {
     try {
-        if (req.role !== "user") {
+        if (!req.user) {
             return res.status(403).json({ success: false, message: "Only users can save properties" });
         }
         const propertyId = req.params.id;
@@ -26,7 +26,7 @@ const saveProperty = async (req, res) => {
 // @access  Private
 const unsaveProperty = async (req, res) => {
     try {
-        if (req.role !== "user") {
+        if (!req.user) {
             return res.status(403).json({ success: false, message: "Only users can unsave properties" });
         }
         const propertyId = req.params.id;

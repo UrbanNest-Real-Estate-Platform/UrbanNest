@@ -71,9 +71,9 @@ const formatPrice = (price) => {
   if (typeof price === 'string') return price;
   if (!price) return '₹0';
   if (price >= 10000000) {
-      return '₹' + (price / 10000000).toFixed(2) + ' Cr';
+    return '₹' + (price / 10000000).toFixed(2) + ' Cr';
   } else if (price >= 100000) {
-      return '₹' + (price / 100000).toFixed(2) + ' L';
+    return '₹' + (price / 100000).toFixed(2) + ' L';
   }
   return '₹' + price.toString();
 }
@@ -88,53 +88,89 @@ const formatSqft = (sqft) => {
   return Math.round(Number(sqft));
 }
 
-/* ─── COUNTDOWN ─── */
-function useCountdown(initialMs) {
-  const [ms, setMs] = useState(initialMs)
-  useEffect(() => {
-    const id = setInterval(() => setMs(prev => Math.max(0, prev - 1000)), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${pad(h)}h ${pad(m)}m ${pad(s)}s`
-}
 
 /* ─── AUCTION CARD ─── */
 export function AuctionCard({ a }) {
   const navigate = useNavigate();
-  const time = useCountdown(a.endsInMs || (2 * 3600000 + 14 * 60000))
-  const bids = a.bids || 0;
+  const [now, setNow] = useState(Date.now());
+  const [reminded, setReminded] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const startTime = a.auctionStartTime ? new Date(a.auctionStartTime).getTime() : 0;
+  const endTime = a.auctionEndTime ? new Date(a.auctionEndTime).getTime() : 0;
+
+  const isFuture = startTime > now;
+  const isOngoing = startTime <= now && endTime > now;
+
+  const formatCountdown = (targetMs) => {
+    const diff = targetMs - now;
+    if (diff <= 0) return '00h 00m 00s';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+  };
+
+  const handleRemindMe = (e) => {
+    e.stopPropagation();
+    setReminded(true);
+    toast.success("Reminder set!");
+  };
+
+  let timeDisplay, timeLabel;
+  if (isFuture) {
+    const diffHrs = (startTime - now) / 3600000;
+    timeLabel = "⏳ Starts In";
+    if (diffHrs <= 24) {
+      timeDisplay = formatCountdown(startTime);
+    } else {
+      timeDisplay = new Date(startTime).toLocaleDateString() + ' ' + new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timeLabel = "🗓️ Starts On";
+    }
+  } else if (isOngoing) {
+    timeLabel = "⚡ Ends In";
+    timeDisplay = formatCountdown(endTime);
+  } else {
+    timeLabel = "🛑 Status";
+    timeDisplay = "Ended";
+  }
+
   return (
     <div className="un-card-auction" onClick={() => navigate('/property/' + (a._id || a.id))} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
         <img className="un-card-img" src={getImage(a.images || [a.image])} alt={a.title} loading="lazy" />
-        <div className="un-tag-live">
-          <span className="un-live-dot" />
-          LIVE
-        </div>
-        <div className="un-tag-bids">{bids} bids</div>
+        {isOngoing && (
+          <div className="un-tag-live">
+            <span className="un-live-dot" /> LIVE
+          </div>
+        )}
       </div>
       <div className="un-card-body">
         <div className="un-card-title">{a.title}</div>
         <div className="un-card-loc"><IconPin />{a.address?.locality || a.location}</div>
         <div className="un-countdown-row">
-          <span className="un-countdown-label">⚡ Ends in</span>
-          <span className="un-countdown-time">{time}</span>
+          <span className="un-countdown-label">{timeLabel}</span>
+          <span className="un-countdown-time" style={{ fontSize: isFuture && (startTime - now) / 3600000 > 24 ? '0.85rem' : '1.1rem' }}>{timeDisplay}</span>
         </div>
-        <div className="un-bid-info">
-          <div>
-            <div className="un-bid-label">Current Highest Bid</div>
-            <div className="un-bid-amount">{formatPrice(a.totalPrice || a.bid)}</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="un-bid-label">Total Bids</div>
-            <div className="un-bid-amount">{bids}<span> bids</span></div>
-          </div>
-        </div>
-        <button className="un-btn-bid"><IconGavel /> Place Bid</button>
+
+        {isFuture ? (
+          <button className="un-btn-bid" onClick={handleRemindMe} disabled={reminded} style={{ background: reminded ? '#f3f4f6' : '', color: reminded ? '#9ca3af' : '' }}>
+            <IconBell /> {reminded ? 'Reminder Set' : 'Set Reminder'}
+          </button>
+        ) : isOngoing ? (
+          <button className="un-btn-bid" onClick={(e) => { e.stopPropagation(); navigate(`/auction/${a._id || a.id}`) }}>
+            <IconGavel /> Participate
+          </button>
+        ) : (
+          <button className="un-btn-bid" disabled style={{ background: '#f3f4f6', color: '#9ca3af' }}>
+            Auction Ended
+          </button>
+        )}
       </div>
     </div>
   )

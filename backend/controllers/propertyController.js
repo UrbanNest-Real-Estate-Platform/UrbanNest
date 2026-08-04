@@ -34,6 +34,9 @@ const searchProperties = async (req, res) => {
         // Match listingType ('sell', 'rent', 'auction')
         if (listing_type) {
             query.listingType = listing_type;
+            if (listing_type === 'auction') {
+                query.auctionEndTime = { $gt: new Date() };
+            }
         }
 
         // Match BHK / bedrooms in specs
@@ -92,7 +95,8 @@ const getLiveAuctions = async (req, res) => {
     try {
         const auctions = await Property.find({
             listingType: "auction",
-            status: "Available"
+            status: "Available",
+            auctionEndTime: { $gt: new Date() }
         })
             .sort({ createdAt: -1 })
             .limit(24);

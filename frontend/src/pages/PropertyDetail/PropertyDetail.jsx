@@ -55,6 +55,7 @@ export default function PropertyDetail() {
     const [loading, setLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
     const [showOfferModal, setShowOfferModal] = useState(false);
+    const [existingOffer, setExistingOffer] = useState(null);
 
     useEffect(() => {
         const fetchPropertyAndUser = async () => {
@@ -67,8 +68,21 @@ export default function PropertyDetail() {
                 // Fetch user to check saved properties
                 try {
                     const userRes = await api.get('/auth/me');
-                    if (userRes.data.success && userRes.data.user.savedPropertyIds) {
-                        setIsSaved(userRes.data.user.savedPropertyIds.includes(id));
+                    if (userRes.data.success) {
+                        if (userRes.data.user.savedPropertyIds) {
+                            setIsSaved(userRes.data.user.savedPropertyIds.includes(id));
+                        }
+                        // Fetch existing offer if property is negotiable
+                        if (propertyRes.data.data.listingType === 'sell' && propertyRes.data.data.isNegotiable) {
+                            try {
+                                const offerRes = await api.get(`/offers/my-offer/${id}`);
+                                if (offerRes.data.success && offerRes.data.data) {
+                                    setExistingOffer(offerRes.data.data);
+                                }
+                            } catch (offerErr) {
+                                console.log("No existing offer or failed to fetch");
+                            }
+                        }
                     }
                 } catch (userErr) {
                     console.log("User not logged in or failed to fetch user state");
@@ -113,6 +127,21 @@ export default function PropertyDetail() {
         navigator.clipboard.writeText(window.location.href);
         toast.success("Link copied to clipboard!");
     }
+
+    const handleCancelOffer = async () => {
+        if (!existingOffer) return;
+        if (!window.confirm("Are you sure you want to cancel your offer?")) return;
+        try {
+            const res = await api.delete(`/offers/${existingOffer._id}`);
+            if (res.data.success) {
+                toast.success("Offer cancelled successfully");
+                setExistingOffer(null);
+            }
+        } catch (error) {
+            console.error("Failed to cancel offer", error);
+            toast.error(error.response?.data?.message || "Failed to cancel offer");
+        }
+    };
 
     const formatPrice = (price) => {
         if (price >= 10000000) {
@@ -224,9 +253,16 @@ export default function PropertyDetail() {
                         {property.listingType === 'auction' ? (
                             <AuctionReminder property={property} />
                         ) : property.listingType === 'sell' && property.isNegotiable && (
-                            <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowOfferModal(true)}>
-                                Make an Offer
-                            </button>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowOfferModal(true)} style={{ flex: 1 }}>
+                                    {existingOffer ? 'Edit Your Offer' : 'Make an Offer'}
+                                </button>
+                                {existingOffer && (
+                                    <button className="pd-btn-primary pd-offer-btn" onClick={handleCancelOffer} style={{ flex: 1, background: '#ef4444' }}>
+                                        Cancel Offer
+                                    </button>
+                                )}
+                            </div>
                         )}
 
                         <div style={{ marginTop: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -250,7 +286,12 @@ export default function PropertyDetail() {
             </main>
 
             {showOfferModal && (
-                <OfferModal property={property} onClose={() => setShowOfferModal(false)} />
+                <OfferModal 
+                    property={property} 
+                    existingOffer={existingOffer}
+                    onClose={() => setShowOfferModal(false)} 
+                    onOfferUpdated={(offer) => setExistingOffer(offer)}
+                />
             )}
         </div>
     );
