@@ -1,24 +1,29 @@
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const validator = require("validator");
 const generateToken = require("../utils/generateToken");
 const Builder = require('../models/Builder');
 
+// In-memory fallback stores when MongoDB is offline
+const inMemoryUsers = [];
+const inMemoryBuilders = [];
+
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password, confirmPassword, phoneNumber, cityOfResidence} = req.body;
+        const { name, email, password, confirmPassword, phoneNumber, cityOfResidence } = req.body;
 
-        if(
+        if (
             !name ||
             !email ||
             !password ||
             !confirmPassword ||
             !phoneNumber ||
             !cityOfResidence
-        ){
+        ) {
             return res.status(400).json({
-                success : false,
-                message : "Please Fill all Fields"
+                success: false,
+                message: "Please Fill all Fields"
             });
         }
 
@@ -50,7 +55,14 @@ const registerUser = async (req, res) => {
             });
         }
 
-        const existingUser = await User.findOne({ email });
+        const isDbConnected = mongoose.connection.readyState === 1;
+        let existingUser = false;
+
+        if (isDbConnected) {
+            existingUser = await User.findOne({ email });
+        } else {
+            existingUser = inMemoryUsers.find(u => u.email === email);
+        }
 
         if (existingUser) {
             return res.status(400).json({
@@ -60,16 +72,28 @@ const registerUser = async (req, res) => {
         }
 
         const salt = await bcrypt.genSalt(10);
-        
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const user = await User.create({
-            name,
-            email,
-            password: hashedPassword,
-            phoneNumber,
-            cityOfResidence,
-        });
+        let user;
+        if (isDbConnected) {
+            user = await User.create({
+                name,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                cityOfResidence,
+            });
+        } else {
+            user = {
+                _id: `mem_u_${Date.now()}`,
+                name,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                cityOfResidence,
+            };
+            inMemoryUsers.push(user);
+        }
 
         res.status(201).json({
             success: true,
@@ -94,7 +118,6 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
-
         const email = req.body.email?.trim();
         const password = req.body.password;
 
@@ -112,7 +135,14 @@ const loginUser = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ email });
+        const isDbConnected = mongoose.connection.readyState === 1;
+        let user;
+
+        if (isDbConnected) {
+            user = await User.findOne({ email });
+        } else {
+            user = inMemoryUsers.find(u => u.email === email);
+        }
 
         if (!user) {
             return res.status(401).json({
@@ -153,20 +183,16 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
-
         console.error("Login Error:", error);
-
         res.status(500).json({
             success: false,
             message: "Server Error"
         });
-
     }
 };
 
 const registerBuilder = async (req, res) => {
     try {
-
         const {
             companyName,
             registrationNumber,
@@ -225,7 +251,18 @@ const registerBuilder = async (req, res) => {
             });
         }
 
-        const existingEmail = await Builder.findOne({ email });
+        const isDbConnected = mongoose.connection.readyState === 1;
+
+        let existingEmail = false;
+        let existingRegistration = false;
+
+        if (isDbConnected) {
+            existingEmail = await Builder.findOne({ email });
+            existingRegistration = await Builder.findOne({ registrationNumber });
+        } else {
+            existingEmail = inMemoryBuilders.find(b => b.email === email);
+            existingRegistration = inMemoryBuilders.find(b => b.registrationNumber === registrationNumber);
+        }
 
         if (existingEmail) {
             return res.status(400).json({
@@ -233,10 +270,6 @@ const registerBuilder = async (req, res) => {
                 message: "Email already registered"
             });
         }
-
-        const existingRegistration = await Builder.findOne({
-            registrationNumber
-        });
 
         if (existingRegistration) {
             return res.status(400).json({
@@ -248,17 +281,34 @@ const registerBuilder = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const builder = await Builder.create({
-            companyName,
-            registrationNumber,
-            ownerName,
-            contactPersonName,
-            email,
-            password: hashedPassword,
-            phoneNumber,
-            websiteUrl,
-            officeAddress
-        });
+        let builder;
+        if (isDbConnected) {
+            builder = await Builder.create({
+                companyName,
+                registrationNumber,
+                ownerName,
+                contactPersonName,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                websiteUrl,
+                officeAddress
+            });
+        } else {
+            builder = {
+                _id: `mem_b_${Date.now()}`,
+                companyName,
+                registrationNumber,
+                ownerName,
+                contactPersonName,
+                email,
+                password: hashedPassword,
+                phoneNumber,
+                websiteUrl,
+                officeAddress
+            };
+            inMemoryBuilders.push(builder);
+        }
 
         res.status(201).json({
             success: true,
@@ -277,21 +327,16 @@ const registerBuilder = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("Register Builder Error:", error);
         res.status(500).json({
             success: false,
             message: "Server Error"
         });
-
     }
 };
 
 const loginBuilder = async (req, res) => {
-
     try {
-
         const email = req.body.email?.trim();
         const password = req.body.password;
 
@@ -309,7 +354,14 @@ const loginBuilder = async (req, res) => {
             });
         }
 
-        const builder = await Builder.findOne({ email });
+        const isDbConnected = mongoose.connection.readyState === 1;
+        let builder;
+
+        if (isDbConnected) {
+            builder = await Builder.findOne({ email });
+        } else {
+            builder = inMemoryBuilders.find(b => b.email === email);
+        }
 
         if (!builder) {
             return res.status(401).json({
@@ -354,28 +406,22 @@ const loginBuilder = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(error);
-
+        console.error("Login Builder Error:", error);
         res.status(500).json({
             success: false,
             message: "Server Error"
         });
-
     }
 };
 
 const getCurrentUser = async (req, res) => {
-
     res.status(200).json({
         success: true,
         user: req.user
     });
-
 };
 
 const logoutUser = async (req, res) => {
-
     res.cookie("token", "", {
         httpOnly: true,
         expires: new Date(0)
@@ -385,7 +431,6 @@ const logoutUser = async (req, res) => {
         success: true,
         message: "Logged out successfully"
     });
-
 };
 
 module.exports = {
