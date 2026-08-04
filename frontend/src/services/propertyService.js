@@ -28,3 +28,19 @@ export const searchProperties = async (queryParams) => {
     
     return await api.get(`/properties/search?${params.toString()}`);
 };
+
+export const getPropertyById = async (id) => {
+    return await api.get(`/properties/${id}`);
+};
+
+export const createProperty = async (propertyData) => {
+    return await api.post("/properties", propertyData);
+};
+
+export const updateProperty = async (id, propertyData) => {
+    return await api.put(`/properties/${id}`, propertyData);
+};
+
+export const deleteProperty = async (id) => {
+    return await api.delete(`/properties/${id}`);
+};

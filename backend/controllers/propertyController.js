@@ -273,11 +273,170 @@ const getPropertyById = async (req, res) => {
     }
 };
 
+// @desc    Create a new property
+// @route   POST /api/properties
+// @access  Private
+const createProperty = async (req, res) => {
+    try {
+        const {
+            title, description, propertyType, listingType, totalPrice, 
+            securityDeposit, maintenance, isNegotiable, status, specs, 
+            address, location, images, auctionStartTime, auctionEndTime
+        } = req.body;
+
+        const propertyData = {
+            ownerId: req.user._id,
+            title,
+            description,
+            propertyType,
+            listingType,
+            totalPrice,
+            securityDeposit: securityDeposit || 0,
+            maintenance: maintenance || 0,
+            isNegotiable: isNegotiable || false,
+            status: status || 'Available',
+            specs,
+            address,
+            location: {
+                type: 'Point',
+                coordinates: location?.coordinates || [72.8777, 19.0760] // Default to Mumbai if not provided
+            },
+            images: images || [],
+        };
+
+        if (listingType === 'auction') {
+            if (!auctionStartTime || !auctionEndTime) {
+                return res.status(400).json({ success: false, message: "Auction properties require start and end times." });
+            }
+            propertyData.auctionStartTime = auctionStartTime;
+            propertyData.auctionEndTime = auctionEndTime;
+        }
+
+        const property = await Property.create(propertyData);
+
+        return res.status(201).json({
+            success: true,
+            data: property
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while creating property",
+            error: error.message
+        });
+    }
+};
+
+// @desc    Update a property
+// @route   PUT /api/properties/:id
+// @access  Private
+const updateProperty = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const property = await Property.findById(id);
+
+        if (!property) {
+            return res.status(404).json({ success: false, message: "Property not found" });
+        }
+
+        if (property.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: "Not authorized to update this property" });
+        }
+
+        const {
+            title, description, propertyType, listingType, totalPrice, 
+            securityDeposit, maintenance, isNegotiable, status, specs, 
+            address, location, images, auctionStartTime, auctionEndTime
+        } = req.body;
+
+        property.title = title || property.title;
+        property.description = description || property.description;
+        property.propertyType = propertyType || property.propertyType;
+        property.listingType = listingType || property.listingType;
+        property.totalPrice = totalPrice || property.totalPrice;
+        property.securityDeposit = securityDeposit !== undefined ? securityDeposit : property.securityDeposit;
+        property.maintenance = maintenance !== undefined ? maintenance : property.maintenance;
+        property.isNegotiable = isNegotiable !== undefined ? isNegotiable : property.isNegotiable;
+        property.status = status || property.status;
+        
+        if (specs) property.specs = specs;
+        if (address) property.address = address;
+        
+        if (location && location.coordinates) {
+            property.location = {
+                type: 'Point',
+                coordinates: location.coordinates
+            };
+        }
+        
+        if (images) property.images = images;
+
+        if (property.listingType === 'auction') {
+            if (auctionStartTime) property.auctionStartTime = auctionStartTime;
+            if (auctionEndTime) property.auctionEndTime = auctionEndTime;
+        }
+
+        const updatedProperty = await property.save();
+
+        return res.status(200).json({
+            success: true,
+            data: updatedProperty
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while updating property",
+            error: error.message
+        });
+    }
+};
+
+// @desc    Delete a property
+// @route   DELETE /api/properties/:id
+// @access  Private
+const deleteProperty = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const property = await Property.findById(id);
+
+        if (!property) {
+            return res.status(404).json({ success: false, message: "Property not found" });
+        }
+
+        if (property.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: "Not authorized to delete this property" });
+        }
+
+        const Offer = require("../models/Offer");
+        await Offer.deleteMany({ propertyId: id });
+
+        await property.deleteOne();
+
+        return res.status(200).json({
+            success: true,
+            message: "Property and its offers deleted successfully"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while deleting property",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     searchProperties,
     getLiveAuctions,
     getFeaturedSaleProperties,
     getRentalProperties,
     getRecentlyViewed,
-    getPropertyById
+    getPropertyById,
+    createProperty,
+    updateProperty,
+    deleteProperty
 };

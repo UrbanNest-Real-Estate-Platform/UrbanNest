@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchProperties } from '../../services/propertyService';
-import { SaleCard, RentalCard, AuctionCard } from '../Dashboard/Dashboard';
+import { SaleCard, RentalCard, AuctionCard } from '../../components/PropertyCards/PropertyCards';
 import './Search.css';
 
 export default function Search() {
