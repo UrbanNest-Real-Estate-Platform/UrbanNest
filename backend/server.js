@@ -7,6 +7,9 @@ const cookieParser = require('cookie-parser');
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes.js");
 const adminRoutes = require("./routes/adminRoutes");
+const propertyRoutes = require("./routes/propertyRoutes.js");
+const userRoutes = require("./routes/userRoutes.js");
+const offerRoutes = require("./routes/offerRoutes.js");
 
 dotenv.config();
 connectDB();
@@ -25,6 +28,9 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/properties", propertyRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/offers", offerRoutes);
 
 app.use('/api/admin',adminRoutes);
 

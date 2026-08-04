@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom';
+import { getLiveAuctions, getFeaturedSaleProperties, getRentalProperties } from '../../services/propertyService';
+import api from '../../services/axios';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 /* ─── ICONS ─── */
@@ -22,7 +26,7 @@ const IconArrow = () => (
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 )
-const IconPin = ({style}) => (
+const IconPin = ({ style }) => (
   <svg style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
   </svg>
@@ -53,172 +57,6 @@ const IconGavel = () => (
   </svg>
 )
 
-/* ─── DATA ─── */
-const AUCTIONS = [
-  {
-    id: 1,
-    title: 'Skyline Penthouse Suite',
-    location: 'Bandra West, Mumbai',
-    image: 'https://images.unsplash.com/photo-1757924461488-ef9ad0670978?w=600&h=380&fit=crop&auto=format',
-    bid: '₹4,20,00,000',
-    bids: 18,
-    endsInMs: 2 * 3600000 + 14 * 60000 + 32000,
-  },
-  {
-    id: 2,
-    title: 'Grand Duplex Villa',
-    location: 'Juhu, Mumbai',
-    image: 'https://images.unsplash.com/photo-1653972233597-05822baa3c4e?w=600&h=380&fit=crop&auto=format',
-    bid: '₹7,85,00,000',
-    bids: 31,
-    endsInMs: 5 * 3600000 + 48 * 60000 + 10000,
-  },
-  {
-    id: 3,
-    title: 'Heritage Loft Apartment',
-    location: 'Lower Parel, Mumbai',
-    image: 'https://images.unsplash.com/photo-1758448755778-90ebf4d0f1e7?w=600&h=380&fit=crop&auto=format',
-    bid: '₹1,95,00,000',
-    bids: 9,
-    endsInMs: 47 * 60000 + 22000,
-  },
-  {
-    id: 4,
-    title: 'Marina Bay Residency',
-    location: 'Worli Sea Face, Mumbai',
-    image: 'https://images.unsplash.com/photo-1638454795595-0a0abf68614d?w=600&h=380&fit=crop&auto=format',
-    bid: '₹6,30,00,000',
-    bids: 24,
-    endsInMs: 11 * 3600000 + 5 * 60000 + 55000,
-  },
-]
-
-const SALE_PROPERTIES = [
-  {
-    id: 1,
-    title: 'Aranya Hill House',
-    location: 'Powai, Mumbai',
-    price: '₹2,75,00,000',
-    sqft: '2,100',
-    bhk: '4',
-    bath: '3',
-    image: 'https://images.unsplash.com/photo-1721815693498-cc28507c0ba2?w=560&h=380&fit=crop&auto=format',
-    tags: ['Ready to Move', 'Vastu'],
-    loved: false,
-  },
-  {
-    id: 2,
-    title: 'Opaline Tower',
-    location: 'Goregaon East, Mumbai',
-    price: '₹1,18,00,000',
-    sqft: '980',
-    bhk: '2',
-    bath: '2',
-    image: 'https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?w=560&h=380&fit=crop&auto=format',
-    tags: ['New Launch', 'RERA'],
-    loved: true,
-  },
-  {
-    id: 3,
-    title: 'Serene Palms Bungalow',
-    location: 'Alibaug, Raigad',
-    price: '₹5,60,00,000',
-    sqft: '3,800',
-    bhk: '5',
-    bath: '5',
-    image: 'https://images.unsplash.com/photo-1633354747567-e0682586f082?w=560&h=380&fit=crop&auto=format',
-    tags: ['Premium', 'Pool'],
-    loved: false,
-  },
-  {
-    id: 4,
-    title: 'Azure Bay Suites',
-    location: 'Andheri West, Mumbai',
-    price: '₹88,00,000',
-    sqft: '750',
-    bhk: '1',
-    bath: '1',
-    image: 'https://images.unsplash.com/photo-1719887805632-de5be825f72b?w=560&h=380&fit=crop&auto=format',
-    tags: ['RERA', 'Furnished'],
-    loved: false,
-  },
-  {
-    id: 5,
-    title: 'Riviera Heights',
-    location: 'Thane West',
-    price: '₹1,45,00,000',
-    sqft: '1,250',
-    bhk: '3',
-    bath: '2',
-    image: 'https://images.unsplash.com/photo-1591474200742-8e512e6f98f8?w=560&h=380&fit=crop&auto=format',
-    tags: ['Ready to Move'],
-    loved: false,
-  },
-]
-
-const RENTALS = [
-  {
-    id: 1,
-    title: 'Sunlit Corner 3BHK',
-    location: 'Bandra East, Mumbai',
-    rent: '₹75,000',
-    sqft: '1,450',
-    bhk: '3',
-    bath: '2',
-    furnish: 'Fully Furnished',
-    furnishType: 'green',
-    image: 'https://images.unsplash.com/photo-1638454668466-e8dbd5462f20?w=560&h=380&fit=crop&auto=format',
-  },
-  {
-    id: 2,
-    title: 'Contemporary Studio',
-    location: 'Andheri West, Mumbai',
-    rent: '₹32,000',
-    sqft: '480',
-    bhk: '1',
-    bath: '1',
-    furnish: 'Semi-Furnished',
-    furnishType: 'amber',
-    image: 'https://images.unsplash.com/photo-1715985160053-d339e8b6eb94?w=560&h=380&fit=crop&auto=format',
-  },
-  {
-    id: 3,
-    title: 'Heritage Library Flat',
-    location: 'Colaba, Mumbai',
-    rent: '₹1,20,000',
-    sqft: '2,200',
-    bhk: '4',
-    bath: '3',
-    furnish: 'Fully Furnished',
-    furnishType: 'green',
-    image: 'https://images.unsplash.com/photo-1780257562925-d78de6cb6612?w=560&h=380&fit=crop&auto=format',
-  },
-  {
-    id: 4,
-    title: 'Minimal Loft Unit',
-    location: 'Lower Parel, Mumbai',
-    rent: '₹45,000',
-    sqft: '620',
-    bhk: '1',
-    bath: '1',
-    furnish: 'Unfurnished',
-    furnishType: 'gray',
-    image: 'https://images.unsplash.com/photo-1780257563050-0ee78acfeee8?w=560&h=380&fit=crop&auto=format',
-  },
-  {
-    id: 5,
-    title: 'Urban Nest 2BHK',
-    location: 'Kurla West, Mumbai',
-    rent: '₹28,500',
-    sqft: '920',
-    bhk: '2',
-    bath: '2',
-    furnish: 'Semi-Furnished',
-    furnishType: 'amber',
-    image: 'https://images.unsplash.com/photo-1638454795595-0a0abf68614d?w=560&h=380&fit=crop&auto=format',
-  },
-]
-
 const RECENTLY_VIEWED = [
   { id: 1, title: 'Skyline Penthouse', loc: 'Bandra West', price: '₹4.2 Cr', image: 'https://images.unsplash.com/photo-1757924461488-ef9ad0670978?w=128&h=128&fit=crop&auto=format' },
   { id: 2, title: 'Aranya Hill House', loc: 'Powai', price: '₹2.75 Cr', image: 'https://images.unsplash.com/photo-1721815693498-cc28507c0ba2?w=128&h=128&fit=crop&auto=format' },
@@ -228,66 +66,146 @@ const RECENTLY_VIEWED = [
   { id: 6, title: 'Heritage Library Flat', loc: 'Colaba', price: '₹1.2L/mo', image: 'https://images.unsplash.com/photo-1780257562925-d78de6cb6612?w=128&h=128&fit=crop&auto=format' },
 ]
 
-/* ─── COUNTDOWN ─── */
-function useCountdown(initialMs) {
-  const [ms, setMs] = useState(initialMs)
-  useEffect(() => {
-    const id = setInterval(() => setMs(prev => Math.max(0, prev - 1000)), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${pad(h)}h ${pad(m)}m ${pad(s)}s`
+/* ─── FORMATTER ─── */
+const formatPrice = (price) => {
+  if (typeof price === 'string') return price;
+  if (!price) return '₹0';
+  if (price >= 10000000) {
+    return '₹' + (price / 10000000).toFixed(2) + ' Cr';
+  } else if (price >= 100000) {
+    return '₹' + (price / 100000).toFixed(2) + ' L';
+  }
+  return '₹' + price.toString();
 }
 
+const getImage = (images) => {
+  if (images && images.length > 0) return images[0];
+  return 'https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?w=560&h=380&fit=crop&auto=format';
+}
+
+const formatSqft = (sqft) => {
+  if (!sqft) return '0';
+  return Math.round(Number(sqft));
+}
+
+
 /* ─── AUCTION CARD ─── */
-function AuctionCard({ a }) {
-  const time = useCountdown(a.endsInMs)
+export function AuctionCard({ a }) {
+  const navigate = useNavigate();
+  const [now, setNow] = useState(Date.now());
+  const [reminded, setReminded] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const startTime = a.auctionStartTime ? new Date(a.auctionStartTime).getTime() : 0;
+  const endTime = a.auctionEndTime ? new Date(a.auctionEndTime).getTime() : 0;
+
+  const isFuture = startTime > now;
+  const isOngoing = startTime <= now && endTime > now;
+
+  const formatCountdown = (targetMs) => {
+    const diff = targetMs - now;
+    if (diff <= 0) return '00h 00m 00s';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+  };
+
+  const handleRemindMe = (e) => {
+    e.stopPropagation();
+    setReminded(true);
+    toast.success("Reminder set!");
+  };
+
+  let timeDisplay, timeLabel;
+  if (isFuture) {
+    const diffHrs = (startTime - now) / 3600000;
+    timeLabel = "⏳ Starts In";
+    if (diffHrs <= 24) {
+      timeDisplay = formatCountdown(startTime);
+    } else {
+      timeDisplay = new Date(startTime).toLocaleDateString() + ' ' + new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timeLabel = "🗓️ Starts On";
+    }
+  } else if (isOngoing) {
+    timeLabel = "⚡ Ends In";
+    timeDisplay = formatCountdown(endTime);
+  } else {
+    timeLabel = "🛑 Status";
+    timeDisplay = "Ended";
+  }
+
   return (
-    <div className="un-card-auction">
+    <div className="un-card-auction" onClick={() => navigate('/property/' + (a._id || a.id))} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
-        <img className="un-card-img" src={a.image} alt={a.title} loading="lazy" />
-        <div className="un-tag-live">
-          <span className="un-live-dot" />
-          LIVE
-        </div>
-        <div className="un-tag-bids">{a.bids} bids</div>
+        <img className="un-card-img" src={getImage(a.images || [a.image])} alt={a.title} loading="lazy" />
+        {isOngoing && (
+          <div className="un-tag-live">
+            <span className="un-live-dot" /> LIVE
+          </div>
+        )}
       </div>
       <div className="un-card-body">
         <div className="un-card-title">{a.title}</div>
-        <div className="un-card-loc"><IconPin />{a.location}</div>
+        <div className="un-card-loc"><IconPin />{a.address?.locality || a.location}</div>
         <div className="un-countdown-row">
-          <span className="un-countdown-label">⚡ Ends in</span>
-          <span className="un-countdown-time">{time}</span>
+          <span className="un-countdown-label">{timeLabel}</span>
+          <span className="un-countdown-time" style={{ fontSize: isFuture && (startTime - now) / 3600000 > 24 ? '0.85rem' : '1.1rem' }}>{timeDisplay}</span>
         </div>
-        <div className="un-bid-info">
-          <div>
-            <div className="un-bid-label">Current Highest Bid</div>
-            <div className="un-bid-amount">{a.bid}</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="un-bid-label">Total Bids</div>
-            <div className="un-bid-amount">{a.bids}<span> bids</span></div>
-          </div>
-        </div>
-        <button className="un-btn-bid"><IconGavel /> Place Bid</button>
+
+        {isFuture ? (
+          <button className="un-btn-bid" onClick={handleRemindMe} disabled={reminded} style={{ background: reminded ? '#f3f4f6' : '', color: reminded ? '#9ca3af' : '' }}>
+            <IconBell /> {reminded ? 'Reminder Set' : 'Set Reminder'}
+          </button>
+        ) : isOngoing ? (
+          <button className="un-btn-bid" onClick={(e) => { e.stopPropagation(); navigate(`/auction/${a._id || a.id}`) }}>
+            <IconGavel /> Participate
+          </button>
+        ) : (
+          <button className="un-btn-bid" disabled style={{ background: '#f3f4f6', color: '#9ca3af' }}>
+            Auction Ended
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
 /* ─── SALE CARD ─── */
-function SaleCard({ p }) {
-  const [loved, setLoved] = useState(p.loved)
+export function SaleCard({ p, isInitiallySaved }) {
+  const navigate = useNavigate();
+  const [loved, setLoved] = useState(isInitiallySaved || false)
+
+  const handleToggle = async (e) => {
+    e.stopPropagation();
+    const propId = p._id || p.id;
+    try {
+      if (!loved) {
+        await api.put(`/users/save-property/${propId}`);
+        setLoved(true);
+        toast.success("Saved to wishlist");
+      } else {
+        await api.put(`/users/unsave-property/${propId}`);
+        setLoved(false);
+        toast.info("Removed from wishlist");
+      }
+    } catch (err) {
+      toast.error("Please login to save properties.");
+    }
+  };
+
   return (
-    <div className="un-card-sale">
+    <div className="un-card-sale" onClick={() => navigate('/property/' + (p._id || p.id))} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
-        <img className="un-card-img" src={p.image} alt={p.title} loading="lazy" />
+        <img className="un-card-img" src={getImage(p.images || [p.image])} alt={p.title} loading="lazy" />
         <button
           className={`un-wishlist-btn${loved ? ' loved' : ''}`}
-          onClick={e => { e.stopPropagation(); setLoved(v => !v) }}
+          onClick={handleToggle}
           aria-label={loved ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <IconHeart filled={loved} />
@@ -297,16 +215,16 @@ function SaleCard({ p }) {
         </div>
       </div>
       <div className="un-card-body">
-        <div className="un-card-price">{p.price} <span className="un-card-price-sub">onwards</span></div>
+        <div className="un-card-price">{formatPrice(p.totalPrice || p.price)} <span className="un-card-price-sub">onwards</span></div>
         <div className="un-card-title" style={{ marginTop: 4 }}>{p.title}</div>
-        <div className="un-card-loc"><IconPin />{p.location}</div>
+        <div className="un-card-loc"><IconPin />{p.address?.locality || p.location}</div>
         <div className="un-card-specs">
-          <span className="un-spec"><IconBed />{p.bhk} BHK</span>
-          <span className="un-spec"><IconBath />{p.bath} Bath</span>
-          <span className="un-spec"><IconSquare />{p.sqft} sqft</span>
+          <span className="un-spec"><IconBed />{p.specs?.bedrooms || p.bhk} BHK</span>
+          <span className="un-spec"><IconBath />{p.specs?.bathrooms || p.bath} Bath</span>
+          <span className="un-spec"><IconSquare />{formatSqft(p.specs?.areaSqft || p.sqft)} sqft</span>
         </div>
         <div className="un-tags-row">
-          {p.tags.map(t => <span key={t} className="un-tag un-tag-indigo">{t}</span>)}
+          {(p.tags || ['Ready to Move']).map(t => <span key={t} className="un-tag un-tag-indigo">{t}</span>)}
         </div>
       </div>
     </div>
@@ -314,16 +232,37 @@ function SaleCard({ p }) {
 }
 
 /* ─── RENTAL CARD ─── */
-function RentalCard({ r }) {
-  const [loved, setLoved] = useState(false)
-  const furnishClass = r.furnishType === 'green' ? 'un-tag-green' : r.furnishType === 'amber' ? 'un-tag-amber' : 'un-tag-gray'
+export function RentalCard({ r, isInitiallySaved }) {
+  const navigate = useNavigate();
+  const [loved, setLoved] = useState(isInitiallySaved || false)
+
+  const handleToggle = async (e) => {
+    e.stopPropagation();
+    const propId = r._id || r.id;
+    try {
+      if (!loved) {
+        await api.put(`/users/save-property/${propId}`);
+        setLoved(true);
+        toast.success("Saved to wishlist");
+      } else {
+        await api.put(`/users/unsave-property/${propId}`);
+        setLoved(false);
+        toast.info("Removed from wishlist");
+      }
+    } catch (err) {
+      toast.error("Please login to save properties.");
+    }
+  };
+
+  const furnishClass = r.specs?.furnishingStatus === 'Furnished' ? 'un-tag-green' : r.specs?.furnishingStatus === 'Semi-Furnished' ? 'un-tag-amber' : 'un-tag-gray'
+  const furnishType = r.specs?.furnishingStatus || r.furnish || 'Semi-Furnished';
   return (
-    <div className="un-card-rental">
+    <div className="un-card-rental" onClick={() => navigate('/property/' + (r._id || r.id))} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
-        <img className="un-card-img" src={r.image} alt={r.title} loading="lazy" />
+        <img className="un-card-img" src={getImage(r.images || [r.image])} alt={r.title} loading="lazy" />
         <button
           className={`un-wishlist-btn${loved ? ' loved' : ''}`}
-          onClick={e => { e.stopPropagation(); setLoved(v => !v) }}
+          onClick={handleToggle}
           aria-label="Wishlist"
         >
           <IconHeart filled={loved} />
@@ -334,18 +273,18 @@ function RentalCard({ r }) {
       </div>
       <div className="un-card-body">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-          <span className="un-rent-price">{r.rent}</span>
+          <span className="un-rent-price">{formatPrice(r.totalPrice || r.rent)}</span>
           <span className="un-rent-price-mo">/ month</span>
         </div>
         <div className="un-card-title" style={{ marginTop: 4 }}>{r.title}</div>
-        <div className="un-card-loc"><IconPin />{r.location}</div>
+        <div className="un-card-loc"><IconPin />{r.address?.locality || r.location}</div>
         <div className="un-card-specs">
-          <span className="un-spec"><IconBed />{r.bhk} BHK</span>
-          <span className="un-spec"><IconBath />{r.bath} Bath</span>
-          <span className="un-spec"><IconSquare />{r.sqft} sqft</span>
+          <span className="un-spec"><IconBed />{r.specs?.bedrooms || r.bhk} BHK</span>
+          <span className="un-spec"><IconBath />{r.specs?.bathrooms || r.bath} Bath</span>
+          <span className="un-spec"><IconSquare />{formatSqft(r.specs?.areaSqft || r.sqft)} sqft</span>
         </div>
         <div className="un-tags-row">
-          <span className={`un-tag ${furnishClass}`}>{r.furnish}</span>
+          <span className={`un-tag ${furnishClass}`}>{furnishType}</span>
           <span className="un-tag un-tag-teal">Verified</span>
         </div>
       </div>
@@ -354,9 +293,10 @@ function RentalCard({ r }) {
 }
 
 /* ─── COMPACT CARD ─── */
-function CompactCard({ p }) {
+export function CompactCard({ p }) {
+  const navigate = useNavigate();
   return (
-    <div className="un-card-compact">
+    <div className="un-card-compact" onClick={() => navigate('/property/' + (p._id || p.id))} style={{ cursor: 'pointer' }}>
       <img className="un-compact-img" src={p.image} alt={p.title} loading="lazy" />
       <div className="un-compact-info">
         <div className="un-compact-name">{p.title}</div>
@@ -371,7 +311,78 @@ function CompactCard({ p }) {
 export default function Dashboard() {
   const [scrolled, setScrolled] = useState(false)
   const [activeTab, setActiveTab] = useState('Buy')
+  const [navSearchQuery, setNavSearchQuery] = useState('')
+  const [locality, setLocality] = useState('')
+  const [bhk, setBhk] = useState('')
+  const [price, setPrice] = useState('')
+
+  const [auctions, setAuctions] = useState([])
+  const [sales, setSales] = useState([])
+  const [rentals, setRentals] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [savedPropertyIds, setSavedPropertyIds] = useState(new Set())
+
   const heroRef = useRef(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const auctionsRes = await getLiveAuctions().catch(() => ({ data: { data: [] } }));
+        const salesRes = await getFeaturedSaleProperties().catch(() => ({ data: { data: [] } }));
+        const rentalsRes = await getRentalProperties().catch(() => ({ data: { data: [] } }));
+        const userRes = await api.get('/auth/me').catch(() => null);
+
+        setAuctions(auctionsRes.data?.data || []);
+        setSales(salesRes.data?.data || []);
+        setRentals(rentalsRes.data?.data || []);
+
+        if (userRes?.data?.success && userRes.data.user.savedPropertyIds) {
+          setSavedPropertyIds(new Set(userRes.data.user.savedPropertyIds));
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    const listingType = activeTab === 'Buy' ? 'sell' : activeTab === 'Rent' ? 'rent' : 'auction';
+    params.append('listing_type', listingType);
+    if (locality) params.append('locality', locality);
+
+    // Parse BHK
+    if (bhk) {
+      const bhkNum = parseInt(bhk);
+      if (!isNaN(bhkNum)) {
+        params.append('bhk', bhkNum);
+      }
+    }
+
+    // Parse Price
+    if (price) {
+      if (price === 'Under ₹50L') params.append('price_range', '0-5000000');
+      else if (price === '₹50L – ₹1 Cr') params.append('price_range', '5000000-10000000');
+      else if (price === '₹1 Cr – ₹3 Cr') params.append('price_range', '10000000-30000000');
+      else if (price === '₹3 Cr – ₹5 Cr') params.append('price_range', '30000000-50000000');
+      else if (price === '₹5 Cr+') params.append('minPrice', '50000000');
+    }
+
+    navigate(`/search?${params.toString()}`);
+  }
+
+  const handleNavSearch = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      if (navSearchQuery.trim()) {
+        navigate(`/search?locality=${encodeURIComponent(navSearchQuery.trim())}`);
+      }
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => {
@@ -400,8 +411,15 @@ export default function Dashboard() {
 
         <div className="un-navbar-center">
           <div className={`un-nav-search${scrolled ? ' visible' : ''}`} role="search">
-            <input type="text" placeholder="Search city, locality…" aria-label="Search" />
-            <button className="un-nav-search-btn" aria-label="Search">
+            <input
+              type="text"
+              placeholder="Search city, locality…"
+              aria-label="Search"
+              value={navSearchQuery}
+              onChange={e => setNavSearchQuery(e.target.value)}
+              onKeyDown={handleNavSearch}
+            />
+            <button className="un-nav-search-btn" aria-label="Search" onClick={handleNavSearch}>
               <IconSearch />
             </button>
           </div>
@@ -451,11 +469,11 @@ export default function Dashboard() {
             <div className="un-search-fields">
               <div className="un-search-field">
                 <label htmlFor="locality">Locality / City</label>
-                <input id="locality" type="text" placeholder="e.g. Bandra, Mumbai" />
+                <input id="locality" type="text" placeholder="e.g. Bandra, Mumbai" value={locality} onChange={e => setLocality(e.target.value)} />
               </div>
               <div className="un-search-field">
                 <label htmlFor="bhk">BHK Type</label>
-                <select id="bhk" aria-label="BHK type">
+                <select id="bhk" aria-label="BHK type" value={bhk} onChange={e => setBhk(e.target.value)}>
                   <option value="">Any BHK</option>
                   <option>1 BHK</option>
                   <option>2 BHK</option>
@@ -465,7 +483,7 @@ export default function Dashboard() {
               </div>
               <div className="un-search-field">
                 <label htmlFor="price">Price Range</label>
-                <select id="price" aria-label="Price range">
+                <select id="price" aria-label="Price range" value={price} onChange={e => setPrice(e.target.value)}>
                   <option value="">Any Price</option>
                   <option>Under ₹50L</option>
                   <option>₹50L – ₹1 Cr</option>
@@ -475,7 +493,7 @@ export default function Dashboard() {
                 </select>
               </div>
               <div className="un-search-btn-wrap">
-                <button className="un-hero-search-btn" aria-label="Search properties">
+                <button className="un-hero-search-btn" aria-label="Search properties" onClick={handleSearch}>
                   <IconSearch /> Search
                 </button>
               </div>
@@ -494,16 +512,15 @@ export default function Dashboard() {
               <div className="un-section-label">Live Right Now</div>
               <h2 className="un-section-title" id="auctions-title">⚡ Live Auctions Ending Soon</h2>
             </div>
-            <a className="un-section-link" href="#" aria-label="View all auctions">
+            <a className="un-section-link" href="#" aria-label="View all auctions" onClick={(e) => { e.preventDefault(); navigate('/search?listing_type=auction'); }}>
               View all <IconArrow />
             </a>
           </div>
-          <div className="un-carousel" role="list" aria-label="Live auction properties">
-            {AUCTIONS.map(a => (
-              <div key={a.id} role="listitem">
-                <AuctionCard a={a} />
-              </div>
+          <div className="un-dashboard-grid" role="list" aria-label="Live auction properties">
+            {loading ? <p style={{ padding: '20px' }}>Loading auctions...</p> : auctions.slice(0, 6).map(a => (
+              <AuctionCard key={a._id || a.id} a={a} />
             ))}
+            {!loading && auctions.length === 0 && <p style={{ padding: '20px' }}>No live auctions currently.</p>}
           </div>
         </section>
 
@@ -514,16 +531,15 @@ export default function Dashboard() {
               <div className="un-section-label">Curated Picks</div>
               <h2 className="un-section-title" id="sale-title">🏡 Featured Properties for Sale</h2>
             </div>
-            <a className="un-section-link" href="#" aria-label="View all sale listings">
+            <a className="un-section-link" href="#" aria-label="View all sale listings" onClick={(e) => { e.preventDefault(); navigate('/search?listing_type=sell'); }}>
               View all <IconArrow />
             </a>
           </div>
-          <div className="un-carousel" role="list" aria-label="Properties for sale">
-            {SALE_PROPERTIES.map(p => (
-              <div key={p.id} role="listitem">
-                <SaleCard p={p} />
-              </div>
+          <div className="un-dashboard-grid" role="list" aria-label="Properties for sale">
+            {loading ? <p style={{ padding: '20px' }}>Loading properties...</p> : sales.slice(0, 6).map(p => (
+              <SaleCard key={p._id || p.id} p={p} isInitiallySaved={savedPropertyIds.has(p._id || p.id)} />
             ))}
+            {!loading && sales.length === 0 && <p style={{ padding: '20px' }}>No sale properties currently.</p>}
           </div>
         </section>
 
@@ -534,16 +550,15 @@ export default function Dashboard() {
               <div className="un-section-label">Move-In Ready</div>
               <h2 className="un-section-title" id="rental-title">🔑 Rental Properties</h2>
             </div>
-            <a className="un-section-link" href="#" aria-label="View all rental listings">
+            <a className="un-section-link" href="#" aria-label="View all rental listings" onClick={(e) => { e.preventDefault(); navigate('/search?listing_type=rent'); }}>
               View all <IconArrow />
             </a>
           </div>
-          <div className="un-carousel" role="list" aria-label="Rental properties">
-            {RENTALS.map(r => (
-              <div key={r.id} role="listitem">
-                <RentalCard r={r} />
-              </div>
+          <div className="un-dashboard-grid" role="list" aria-label="Rental properties">
+            {loading ? <p style={{ padding: '20px' }}>Loading rentals...</p> : rentals.slice(0, 6).map(r => (
+              <RentalCard key={r._id || r.id} r={r} isInitiallySaved={savedPropertyIds.has(r._id || r.id)} />
             ))}
+            {!loading && rentals.length === 0 && <p style={{ padding: '20px' }}>No rental properties currently.</p>}
           </div>
         </section>
 

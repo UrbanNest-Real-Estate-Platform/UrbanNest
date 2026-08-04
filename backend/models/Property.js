@@ -183,7 +183,7 @@ const propertySchema = new mongoose.Schema(
         },
     },
     {
-        timestamps: true
+        timestamps: true    // Created createdAt, updatedAt automatically and updates the updatedAt field automatically
     });
 
 // Enable 2dsphere indexing for $near geospatial radius queries
