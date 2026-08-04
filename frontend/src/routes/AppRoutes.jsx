@@ -10,51 +10,177 @@ import Register from "../pages/Register/Register";
 
 import BuilderLogin from "../pages/Builder/BuilderLogin";
 import BuilderRegister from "../pages/Builder/BuilderRegister";
+import BuilderDashboard from "../pages/Builder/BuilderDashboard";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
+import Search from "../pages/Search/Search";
+import PropertyDetail from "../pages/PropertyDetail/PropertyDetail";
+import MyProperties from "../pages/MyProperties/MyProperties";
+import PostProperty from "../pages/PostProperty/PostProperty";
 
 import ProtectedRoute from "../components/ProtectedRoute";
-
-import BuilderDashboard from "../pages/Builder/BuilderDashboard";
 import BuilderProtectedRoute from "../components/BuilderProtectedRoute";
+import AdminProtectedRoute from "../components/AdminProtectedRoute";
+
+import AdminLogin from "../pages/Admin/AdminLogin";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
 
 function AppRoutes() {
-  return (
-    <BrowserRouter>
-      <Routes>
 
-        <Route path="/" element={<LandingPage />} />
+    return (
 
-        <Route path="/login" element={<LoginChoice />} />
-        <Route path="/login/user" element={<Login />} />
-        <Route path="/login/builder" element={<BuilderLogin />} />
+        <BrowserRouter>
 
-        <Route path="/register" element={<RegisterChoice />} />
-        <Route path="/register/user" element={<Register />} />
-        <Route path="/register/builder" element={<BuilderRegister />} />
+            <Routes>
 
+                {/* Landing Page */}
+
+                <Route
+                    path="/"
+                    element={<LandingPage />}
+                />
+
+                {/* Login */}
+
+                <Route
+                    path="/login"
+                    element={<LoginChoice />}
+                />
         <Route
-            path="/builder/dashboard"
-            element={
-                <BuilderProtectedRoute>
-                    <BuilderDashboard />
-                </BuilderProtectedRoute>
-            }
-        />
-        
-
-        <Route
-          path="/dashboard"
+          path="/my-properties"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <MyProperties />
             </ProtectedRoute>
           }
         />
 
-      </Routes>
-    </BrowserRouter>
-  );
+        <Route
+          path="/post-property"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/edit-property/:id"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/admin" element={<AdminLogin />} />
+
+        <Route
+            path="/admin/dashboard"
+            element={
+                <AdminProtectedRoute>
+                    <AdminDashboard />
+                </AdminProtectedRoute>
+            }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <Search />
+            </ProtectedRoute>
+          }
+        />
+
+                <Route
+                    path="/login/user"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/login/builder"
+                    element={<BuilderLogin />}
+                />
+
+                {/* Register */}
+
+                <Route
+                    path="/register"
+                    element={<RegisterChoice />}
+                />
+
+                <Route
+                    path="/register/user"
+                    element={<Register />}
+                />
+
+                <Route
+                    path="/register/builder"
+                    element={<BuilderRegister />}
+                />
+
+                {/* User Dashboard */}
+
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/search"
+                    element={
+                        <ProtectedRoute>
+                            <Search />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/property/:id"
+                    element={
+                        <ProtectedRoute>
+                            <PropertyDetail />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Builder Dashboard */}
+
+                <Route
+                    path="/builder/dashboard"
+                    element={
+                        <BuilderProtectedRoute>
+                            <BuilderDashboard />
+                        </BuilderProtectedRoute>
+                    }
+                />
+
+                {/* Admin */}
+
+                <Route
+                    path="/admin"
+                    element={<AdminLogin />}
+                />
+
+                <Route
+                    path="/admin/dashboard"
+                    element={
+                        <AdminProtectedRoute>
+                            <AdminDashboard />
+                        </AdminProtectedRoute>
+                    }
+                />
+
+            </Routes>
+
+        </BrowserRouter>
+
+    );
+
 }
 
 export default AppRoutes;

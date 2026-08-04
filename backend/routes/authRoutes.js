@@ -8,7 +8,8 @@ const {
     registerBuilder,
     loginBuilder,
     logoutUser,
-    getCurrentUser
+    getCurrentUser,
+    loginAdmin
 } = require("../controllers/authController");
 
 const protect = require("../middleware/authMiddleware");
@@ -23,6 +24,7 @@ router.post("/builder/register", registerBuilder);
 
 router.post("/builder/login", loginBuilder);
 
+router.post('/admin/login',loginAdmin);
 
 router.get('/me',protect,getCurrentUser);
 
