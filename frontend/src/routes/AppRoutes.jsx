@@ -15,6 +15,8 @@ import BuilderDashboard from "../pages/Builder/BuilderDashboard";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Search from "../pages/Search/Search";
 import PropertyDetail from "../pages/PropertyDetail/PropertyDetail";
+import MyProperties from "../pages/MyProperties/MyProperties";
+import PostProperty from "../pages/PostProperty/PostProperty";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import BuilderProtectedRoute from "../components/BuilderProtectedRoute";
@@ -23,57 +25,31 @@ import AdminProtectedRoute from "../components/AdminProtectedRoute";
 import AdminLogin from "../pages/Admin/AdminLogin";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 
+
 function AppRoutes() {
 
     return (
-
         <BrowserRouter>
 
             <Routes>
 
-                {/* Landing Page */}
+                {/* Landing */}
+                <Route path="/" element={<LandingPage />} />
 
-                <Route
-                    path="/"
-                    element={<LandingPage />}
-                />
 
                 {/* Login */}
+                <Route path="/login" element={<LoginChoice />} />
+                <Route path="/login/user" element={<Login />} />
+                <Route path="/login/builder" element={<BuilderLogin />} />
 
-                <Route
-                    path="/login"
-                    element={<LoginChoice />}
-                />
-
-                <Route
-                    path="/login/user"
-                    element={<Login />}
-                />
-
-                <Route
-                    path="/login/builder"
-                    element={<BuilderLogin />}
-                />
 
                 {/* Register */}
+                <Route path="/register" element={<RegisterChoice />} />
+                <Route path="/register/user" element={<Register />} />
+                <Route path="/register/builder" element={<BuilderRegister />} />
 
-                <Route
-                    path="/register"
-                    element={<RegisterChoice />}
-                />
 
-                <Route
-                    path="/register/user"
-                    element={<Register />}
-                />
-
-                <Route
-                    path="/register/builder"
-                    element={<BuilderRegister />}
-                />
-
-                {/* User Dashboard */}
-
+                {/* User */}
                 <Route
                     path="/dashboard"
                     element={
@@ -82,6 +58,7 @@ function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
+
 
                 <Route
                     path="/search"
@@ -92,6 +69,7 @@ function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/property/:id"
                     element={
@@ -101,8 +79,38 @@ function AppRoutes() {
                     }
                 />
 
-                {/* Builder Dashboard */}
 
+                <Route
+                    path="/my-properties"
+                    element={
+                        <ProtectedRoute>
+                            <MyProperties />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                <Route
+                    path="/post-property"
+                    element={
+                        <ProtectedRoute>
+                            <PostProperty />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                <Route
+                    path="/edit-property/:id"
+                    element={
+                        <ProtectedRoute>
+                            <PostProperty />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* Builder */}
                 <Route
                     path="/builder/dashboard"
                     element={
@@ -112,12 +120,13 @@ function AppRoutes() {
                     }
                 />
 
-                {/* Admin */}
 
+                {/* Admin */}
                 <Route
                     path="/admin"
                     element={<AdminLogin />}
                 />
+
 
                 <Route
                     path="/admin/dashboard"
@@ -128,12 +137,12 @@ function AppRoutes() {
                     }
                 />
 
+
             </Routes>
 
         </BrowserRouter>
-
     );
-
 }
+
 
 export default AppRoutes;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../../services/axios';
 import { toast } from 'react-toastify';
 import './PropertyDetail.css';
@@ -152,10 +152,23 @@ export default function PropertyDetail() {
         return '₹' + price.toString();
     };
 
+    const location = useLocation();
+    // reads the data sent using navigate second parameter.
+    const fromPath = location.state?.from || '/dashboard';
+
+    let backText = "Back to Dashboard";
+    if (fromPath.includes("tab=saved")) {
+        backText = "Back to Saved Properties";
+    } else if (fromPath.includes("tab=listings")) {
+        backText = "Back to My Listings";
+    } else if (fromPath.includes("/search")) {
+        backText = "Back to Search Results";
+    }
+
     return (
         <div className="property-detail-page">
             <nav className="pd-navbar">
-                <Link to="/dashboard" className="pd-back-btn">&larr; Back to Dashboard</Link>
+                <Link to={fromPath} className="pd-back-btn">&larr; {backText}</Link>
                 <div className="pd-nav-actions">
                     <button className="pd-icon-btn" onClick={handleShare} aria-label="Share">
                         <IconShare />
@@ -286,10 +299,10 @@ export default function PropertyDetail() {
             </main>
 
             {showOfferModal && (
-                <OfferModal 
-                    property={property} 
+                <OfferModal
+                    property={property}
                     existingOffer={existingOffer}
-                    onClose={() => setShowOfferModal(false)} 
+                    onClose={() => setShowOfferModal(false)}
                     onOfferUpdated={(offer) => setExistingOffer(offer)}
                 />
             )}
