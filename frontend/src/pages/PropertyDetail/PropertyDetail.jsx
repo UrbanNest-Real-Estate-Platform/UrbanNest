@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/axios';
 import { toast } from 'react-toastify';
+import { deleteProperty } from '../../services/propertyService';
 import './PropertyDetail.css';
 
 // Import subcomponents
@@ -12,6 +13,7 @@ import OfferModal from './components/OfferModal';
 import AuctionReminder from './components/AuctionReminder';
 import ProjectBanner from './components/ProjectBanner';
 import SalesHistoryTimeline from './components/SalesHistoryTimeline';
+import PropertyRequestModal from './components/PropertyRequestModal';
 
 // Icons
 const IconMapPin = () => (
@@ -55,7 +57,10 @@ export default function PropertyDetail() {
     const [loading, setLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
     const [showOfferModal, setShowOfferModal] = useState(false);
+    const [showRequestModal, setShowRequestModal] = useState(false);
     const [existingOffer, setExistingOffer] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchPropertyAndUser = async () => {
@@ -69,6 +74,7 @@ export default function PropertyDetail() {
                 try {
                     const userRes = await api.get('/auth/me');
                     if (userRes.data.success) {
+                        setCurrentUser(userRes.data.user);
                         if (userRes.data.user.savedPropertyIds) {
                             setIsSaved(userRes.data.user.savedPropertyIds.includes(id));
                         }
@@ -140,6 +146,20 @@ export default function PropertyDetail() {
         } catch (error) {
             console.error("Failed to cancel offer", error);
             toast.error(error.response?.data?.message || "Failed to cancel offer");
+        }
+    };
+
+    const handleDeleteProperty = async () => {
+        if (window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
+            try {
+                const res = await deleteProperty(property._id);
+                if (res.data.success) {
+                    toast.success("Property deleted successfully");
+                    navigate("/my-properties?tab=listings");
+                }
+            } catch (error) {
+                toast.error("Failed to delete property");
+            }
         }
     };
 
@@ -278,6 +298,25 @@ export default function PropertyDetail() {
                             </div>
                         )}
 
+                        {currentUser && property.ownerId && currentUser._id !== property.ownerId._id && (property.listingType === 'sell' || property.listingType === 'rent') && (
+                            <div style={{ marginTop: '12px' }}>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowRequestModal(true)} style={{ width: '100%', background: property.isActiveTenant ? '#ef4444' : '#10b981' }}>
+                                    {property.isActiveTenant ? 'Submit Vacancy Request' : (property.listingType === 'rent' ? 'Request Tenancy' : 'Request Ownership Transfer')}
+                                </button>
+                            </div>
+                        )}
+
+                        {currentUser && property.ownerId && currentUser._id === property.ownerId._id && (
+                            <div style={{ marginTop: '12px', display: 'flex', gap: '10px' }}>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={() => navigate(`/edit-property/${property._id}`)} style={{ flex: 1, background: '#4f46e5' }}>
+                                    Edit Property
+                                </button>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={handleDeleteProperty} style={{ flex: 1, background: '#ef4444' }}>
+                                    Delete Property
+                                </button>
+                            </div>
+                        )}
+
                         <div style={{ marginTop: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                             <h4 style={{ margin: '0 0 12px 0', fontSize: '1.1rem' }}>Owner Information</h4>
                             {property.ownerId ? (
@@ -304,6 +343,14 @@ export default function PropertyDetail() {
                     existingOffer={existingOffer}
                     onClose={() => setShowOfferModal(false)}
                     onOfferUpdated={(offer) => setExistingOffer(offer)}
+                />
+            )}
+            
+            {showRequestModal && (
+                <PropertyRequestModal
+                    property={property}
+                    isVacancy={property.isActiveTenant}
+                    onClose={() => setShowRequestModal(false)}
                 />
             )}
         </div>
