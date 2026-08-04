@@ -15,3 +15,8 @@ export const registerBuilder = (builderData) => {
 export const loginBuilder = (loginData) => {
     return api.post("/auth/builder/login", loginData);
 };
+
+export const loginAdmin = (loginData) =>{
+    return api.post("/auth/admin/login",loginData);
+}
+

@@ -1,0 +1,167 @@
+.admin-dashboard{
+
+    display:flex;
+
+    min-height:100vh;
+
+    background:#f3f4f6;
+
+}
+
+.admin-main{
+
+    margin-left:260px;
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.admin-content{
+
+    padding:30px;
+
+}
+
+.dashboard-cards{
+
+    display:grid;
+
+    grid-template-columns:repeat(4,1fr);
+
+    gap:20px;
+
+}
+
+.dashboard-card{
+
+    background:white;
+
+    padding:25px;
+
+    border-radius:14px;
+
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+
+    transition:.3s;
+
+}
+
+.dashboard-card:hover{
+
+    transform:translateY(-5px);
+
+}
+
+.dashboard-card h3{
+
+    color:#6b7280;
+
+    font-size:15px;
+
+    margin-bottom:15px;
+
+}
+
+.dashboard-card h2{
+
+    font-size:34px;
+
+    color:#111827;
+
+}
+
+.dashboard-card p{
+
+    margin-top:15px;
+
+    color:#9ca3af;
+
+}
+
+.dashboard-section{
+
+    margin-top:35px;
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr;
+
+    gap:20px;
+
+}
+
+.section-card{
+
+    background:white;
+
+    border-radius:14px;
+
+    padding:25px;
+
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+
+}
+
+.section-card h2{
+
+    margin-bottom:20px;
+
+    color:#111827;
+
+}
+
+.section-card p{
+
+    color:#6b7280;
+
+    line-height:1.6;
+
+}
+
+/* ---------- Responsive ---------- */
+
+@media(max-width:1200px){
+
+    .dashboard-cards{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+@media(max-width:992px){
+
+    .admin-main{
+
+        margin-left:0;
+
+    }
+
+}
+
+@media(max-width:768px){
+
+    .dashboard-cards{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .dashboard-section{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .admin-content{
+
+        padding:18px;
+
+    }
+
+}
