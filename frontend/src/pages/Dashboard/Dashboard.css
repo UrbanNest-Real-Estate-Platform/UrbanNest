@@ -40,6 +40,11 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 /* ─── SCROLLBAR ─── */
@@ -460,9 +465,26 @@ body {
 }
 .un-carousel::-webkit-scrollbar { display: none; }
 
+/* ─── DASHBOARD GRID ─── */
+.un-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 24px;
+  padding: 4px 40px 20px;
+}
+@media (min-width: 768px) {
+  .un-dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .un-dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* ─── AUCTION CARD ─── */
 .un-card-auction {
-  flex: 0 0 300px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -470,6 +492,10 @@ body {
   box-shadow: var(--card-shadow);
   transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
 }
 .un-card-auction:hover {
   transform: translateY(-3px);
@@ -527,6 +553,10 @@ body {
 }
 .un-card-body {
   padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .un-card-title {
   font-size: 15px;
@@ -597,13 +627,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  margin-top: auto;
 }
 .un-btn-bid:hover { background: var(--primary-hover); transform: translateY(-1px); }
 .un-btn-bid svg { width: 14px; height: 14px; }
 
 /* ─── PROPERTY CARD (SALE) ─── */
 .un-card-sale {
-  flex: 0 0 280px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -611,6 +641,10 @@ body {
   box-shadow: var(--card-shadow);
   transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
 }
 .un-card-sale:hover {
   transform: translateY(-3px);
@@ -665,7 +699,7 @@ body {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: auto;
 }
 .un-tag {
   font-size: 11px;
@@ -702,7 +736,6 @@ body {
 
 /* ─── RENTAL CARD ─── */
 .un-card-rental {
-  flex: 0 0 280px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -710,6 +743,10 @@ body {
   box-shadow: var(--card-shadow);
   transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
 }
 .un-card-rental:hover {
   transform: translateY(-3px);
@@ -786,6 +823,7 @@ body {
   .un-nav-search { width: 240px; }
   .un-section-header { padding: 0 20px; }
   .un-carousel { padding: 4px 20px 20px; }
+  .un-dashboard-grid { padding: 4px 20px 20px; }
   .un-hero-title { font-size: 28px; }
   .un-search-fields { grid-template-columns: 1fr 1fr; }
   .un-search-btn-wrap { grid-column: span 2; }
@@ -795,7 +833,7 @@ body {
 
 @media (max-width: 640px) {
   .un-btn-list span { display: none; }
-  .un-nav-search { width: 180px; }
+  .un-navbar-center { display: none; }
   .un-search-fields { grid-template-columns: 1fr; }
   .un-search-btn-wrap { grid-column: 1; }
   .un-section-header { flex-direction: column; align-items: flex-start; gap: 8px; }

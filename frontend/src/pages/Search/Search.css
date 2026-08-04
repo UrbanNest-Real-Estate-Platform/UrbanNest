@@ -1,0 +1,136 @@
+.search-page {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    padding-bottom: 60px;
+    overflow-x: hidden;
+}
+
+.search-navbar {
+    background-color: white;
+    padding: 16px 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.back-link {
+    text-decoration: none;
+    color: #4b5563;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: #2954f2;
+}
+
+.search-navbar h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.search-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.search-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.search-header h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #111827;
+}
+
+.search-badge {
+    background-color: #eef2ff;
+    color: #2954f2;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.loading-state, .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+    font-size: 18px;
+}
+
+.empty-state .btn-primary {
+    display: inline-block;
+    margin-top: 20px;
+    background-color: #2954f2;
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.empty-state .btn-primary:hover {
+    background-color: #1d42dc;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+@media (min-width: 768px) {
+    .results-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .results-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.page-btn {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #374151;
+    transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+}
