@@ -20,6 +20,11 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import BuilderDashboard from "../pages/Builder/BuilderDashboard";
 import BuilderProtectedRoute from "../components/BuilderProtectedRoute";
 
+import AdminLogin from "../pages/Admin/AdminLogin";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
+
+import AdminProtectedRoute from "../components/AdminProtectedRoute";
+
 function AppRoutes() {
   return (
     <BrowserRouter>
@@ -54,6 +59,15 @@ function AppRoutes() {
           }
         />
 
+        <Route path="/admin" element={<AdminLogin />} />
+
+        <Route
+            path="/admin/dashboard"
+            element={
+                <AdminProtectedRoute>
+                    <AdminDashboard />
+                </AdminProtectedRoute>
+            }
         <Route
           path="/search"
           element={

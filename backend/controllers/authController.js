@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const validator = require("validator");
 const generateToken = require("../utils/generateToken");
 const Builder = require('../models/Builder');
+const Admin = require('../models/Admin');
 
 const registerUser = async (req, res) => {
     try {
@@ -376,6 +377,72 @@ const getCurrentUser = async (req, res) => {
     });
 };
 
+const loginAdmin = async (req,res) =>{
+    try{
+        const email = req.body.email?.trim();
+        const password = req.body.password;
+
+        if(!email || !password ){
+            return res.status(400).json({
+                success : false,
+                message : "Please provide email and password"
+            });
+        }
+
+        if(!validator.isEmail(email)){
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+
+        const admin = await Admin.findOne({ email });
+
+        if(!admin){
+            return res.status(401).json({
+                success : false,
+                message : "Admin Not Found"
+            })
+        }
+
+        const isMatch = await bcrypt.compare(password,admin.password);
+
+        if(!isMatch){
+            return res.status(401).json({
+                success : false,
+                message : "Invalid email or password"
+            });
+        }
+
+        const token = generateToken(admin._id,"admin")
+
+        res.cookie("token",token,{
+            httpOnly:true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Admin login successful",
+            token,
+            admin: {
+                id: admin._id,
+                email: admin.email
+            }
+        });
+    }
+    catch(error){
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+    }
+}
+
 const logoutUser = async (req, res) => {
 
     res.cookie("token", "", {
@@ -396,5 +463,6 @@ module.exports = {
     registerBuilder,
     loginBuilder,
     getCurrentUser,
+    loginAdmin,
     logoutUser
 };
