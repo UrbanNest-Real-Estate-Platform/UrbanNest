@@ -11,7 +11,9 @@ const {
     getPropertyById,
     createProperty,
     updateProperty,
-    deleteProperty
+    deleteProperty,
+    submitPropertyRequest,
+    reviewPropertyRequest
 } = require("../controllers/propertyController");
 
 const protect = require("../middleware/authMiddleware");
@@ -25,6 +27,10 @@ router.use(restrictBuilder);
 router.post("/", createProperty);
 router.put("/:id", updateProperty);
 router.delete("/:id", deleteProperty);
+
+// Property requests routes
+router.post("/:id/request", submitPropertyRequest);
+router.put("/requests/:requestId/review", reviewPropertyRequest);
 
 // Feed & Search routes
 router.get("/search", searchProperties);

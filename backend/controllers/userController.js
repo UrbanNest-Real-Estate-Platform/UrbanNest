@@ -72,16 +72,30 @@ const getMyListings = async (req, res) => {
             return res.status(403).json({ success: false, message: "Only authenticated users can view listings" });
         }
         const listings = await Property.find({ ownerId: req.user._id });
-        
+
         // Find total pending offers for these listings
         const listingIds = listings.map(p => p._id);
         const offersCount = await Offer.countDocuments({ propertyId: { $in: listingIds }, status: "Pending" });
-        
-        res.status(200).json({ 
-            success: true, 
+
+        // Calculate Total Active Listings Counter
+        const activeListingsCount = listings.filter(p => p.status === 'Available').length;
+
+        // Sorting: Active (Available/Under Offer) first, then by updatedAt desc
+        const activeStatuses = ['Available', 'Under Offer'];
+        listings.sort((a, b) => {
+            const aActive = activeStatuses.includes(a.status) ? 1 : 0;
+            const bActive = activeStatuses.includes(b.status) ? 1 : 0;
+            if (aActive !== bActive) {
+                return bActive - aActive;
+            }
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+        });
+
+        res.status(200).json({
+            success: true,
             data: listings,
             stats: {
-                totalListings: listings.length,
+                totalListings: activeListingsCount,
                 pendingOffers: offersCount
             }
         });
@@ -90,5 +104,60 @@ const getMyListings = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+// @desc    Get user's active rents
+// @route   GET /api/users/my-rents
+// @access  Private
+const getMyRents = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: "Only authenticated users can view rentals" });
+        }
 
-module.exports = { saveProperty, unsaveProperty, getSavedProperties, getMyListings };
+        const Tenancy = require("../models/Tenancy");
+        const tenancies = await Tenancy.find({ tenantId: req.user._id, isActive: true })
+            .populate('propertyId')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: tenancies
+        });
+    } catch (error) {
+        console.error("Error fetching my rents:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// @desc    Get pending property requests for user's properties
+// @route   GET /api/users/pending-requests
+// @access  Private
+const getPendingRequests = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: "Only authenticated users can view requests" });
+        }
+
+        // First find all properties owned by the user
+        const properties = await Property.find({ ownerId: req.user._id }).select('_id');
+        const propertyIds = properties.map(p => p._id);
+
+        const PropertyRequest = require("../models/PropertyRequest");
+        const pendingRequests = await PropertyRequest.find({
+            propertyId: { $in: propertyIds },
+            status: 'PENDING'
+        })
+            .populate('propertyId')
+            .populate('requesterId', 'name email phoneNumber')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: pendingRequests
+        });
+    } catch (error) {
+        console.error("Error fetching pending requests:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+module.exports = { saveProperty, unsaveProperty, getSavedProperties, getMyListings, getMyRents, getPendingRequests };

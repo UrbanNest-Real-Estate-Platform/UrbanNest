@@ -41,6 +41,7 @@ export default function PostProperty() {
   const [description, setDescription] = useState('');
   const [propertyType, setPropertyType] = useState('Apartment');
   const [listingType, setListingType] = useState('sell');
+  const [status, setStatus] = useState('Available');
 
   // Price Info
   const [totalPrice, setTotalPrice] = useState('');
@@ -111,6 +112,7 @@ export default function PostProperty() {
             setDescription(p.description || '');
             setPropertyType(p.propertyType || 'Apartment');
             setListingType(p.listingType || 'sell');
+            setStatus(p.status || 'Available');
             setTotalPrice(p.totalPrice || '');
             setSecurityDeposit(p.securityDeposit || '');
             setMaintenance(p.maintenance || '');
@@ -193,6 +195,7 @@ export default function PostProperty() {
         description,
         propertyType,
         listingType,
+        status,
         totalPrice: Number(totalPrice),
         securityDeposit: Number(securityDeposit) || 0,
         maintenance: Number(maintenance) || 0,
@@ -283,6 +286,17 @@ export default function PostProperty() {
                   <option value="auction">Auction</option>
                 </select>
               </div>
+              {isEditMode && (
+                <div className="pp-field">
+                  <label>Status *</label>
+                  <select className="pp-select" value={status} onChange={e => setStatus(e.target.value)}>
+                    <option value="Available">Available</option>
+                    <option value="Under Offer">Under Offer</option>
+                    <option value="Sold">Sold</option>
+                    <option value="Rented">Rented</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
