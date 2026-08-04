@@ -15,6 +15,8 @@ import BuilderDashboard from "../pages/Builder/BuilderDashboard";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Search from "../pages/Search/Search";
 import PropertyDetail from "../pages/PropertyDetail/PropertyDetail";
+import MyProperties from "../pages/MyProperties/MyProperties";
+import PostProperty from "../pages/PostProperty/PostProperty";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import BuilderProtectedRoute from "../components/BuilderProtectedRoute";
@@ -44,6 +46,51 @@ function AppRoutes() {
                     path="/login"
                     element={<LoginChoice />}
                 />
+        <Route
+          path="/my-properties"
+          element={
+            <ProtectedRoute>
+              <MyProperties />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/post-property"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/edit-property/:id"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/admin" element={<AdminLogin />} />
+
+        <Route
+            path="/admin/dashboard"
+            element={
+                <AdminProtectedRoute>
+                    <AdminDashboard />
+                </AdminProtectedRoute>
+            }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <Search />
+            </ProtectedRoute>
+          }
+        />
 
                 <Route
                     path="/login/user"
