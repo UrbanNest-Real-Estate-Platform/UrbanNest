@@ -25,6 +25,9 @@ const propertyRequestSchema = new mongoose.Schema(
         message: {
             type: String
         },
+        offerPrice: {
+            type: Number
+        },
         startDate: {
             type: Date
         },

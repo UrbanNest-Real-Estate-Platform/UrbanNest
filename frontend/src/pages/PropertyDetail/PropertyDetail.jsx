@@ -278,17 +278,26 @@ export default function PropertyDetail() {
                 <aside className="pd-sidebar">
                     <div className="pd-card pd-pricing-card">
                         <div className="pd-price-row">
-                            <span className="pd-price-amount">{formatPrice(property.totalPrice)}</span>
+                            <span className="pd-price-amount">
+                                {existingOffer?.status === 'Accepted' ? formatPrice(existingOffer.offerPrice) : formatPrice(property.totalPrice)}
+                            </span>
                             {property.listingType === 'rent' && <span className="pd-price-period">/ month</span>}
                         </div>
-                        <AppreciationBadge history={property.salesHistory} currentPrice={property.totalPrice} />
+                        
+                        {existingOffer?.status === 'Accepted' && (
+                            <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+                                <span style={{ background: '#10b981', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Accepted Offer Price</span>
+                            </div>
+                        )}
+                        
+                        <AppreciationBadge history={property.salesHistory} currentPrice={existingOffer?.status === 'Accepted' ? existingOffer.offerPrice : property.totalPrice} />
 
                         {property.listingType === 'auction' ? (
                             <AuctionReminder property={property} />
-                        ) : property.listingType === 'sell' && property.isNegotiable && (
+                        ) : property.listingType === 'sell' && property.isNegotiable && property.status !== 'Sold' && (!currentUser || (property.ownerId && currentUser._id !== property.ownerId._id)) && (!existingOffer || existingOffer.status === 'Pending') && (
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowOfferModal(true)} style={{ flex: 1 }}>
-                                    {existingOffer ? 'Edit Your Offer' : 'Make an Offer'}
+                                    {existingOffer ? 'View/Edit Your Offer' : 'Make an Offer'}
                                 </button>
                                 {existingOffer && (
                                     <button className="pd-btn-primary pd-offer-btn" onClick={handleCancelOffer} style={{ flex: 1, background: '#ef4444' }}>
@@ -298,10 +307,15 @@ export default function PropertyDetail() {
                             </div>
                         )}
 
-                        {currentUser && property.ownerId && currentUser._id !== property.ownerId._id && (property.listingType === 'sell' || property.listingType === 'rent') && (
+                        {currentUser && property.ownerId && currentUser._id !== property.ownerId._id && property.status !== 'Sold' && (property.listingType === 'sell' || property.listingType === 'rent') && (
                             <div style={{ marginTop: '12px' }}>
                                 <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowRequestModal(true)} style={{ width: '100%', background: property.isActiveTenant ? '#ef4444' : '#10b981' }}>
-                                    {property.isActiveTenant ? 'Submit Vacancy Request' : (property.listingType === 'rent' ? 'Request Tenancy' : 'Request Ownership Transfer')}
+                                    {property.isActiveTenant 
+                                        ? 'Submit Vacancy Request' 
+                                        : (property.listingType === 'rent' 
+                                            ? 'Request Tenancy' 
+                                            : (existingOffer?.status === 'Accepted' ? 'Request Ownership Transfer at Accepted Price' : 'Request Ownership Transfer')
+                                          )}
                                 </button>
                             </div>
                         )}

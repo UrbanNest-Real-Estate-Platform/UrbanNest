@@ -5,6 +5,7 @@ import DashboardNavbar from '../../components/DashboardNavbar/DashboardNavbar';
 import { SaleCard, RentalCard, AuctionCard } from '../../components/PropertyCards/PropertyCards';
 import { getSavedProperties, getMyListings, getMyRents, getPendingRequests } from '../../services/userService';
 import { deleteProperty, reviewPropertyRequest } from '../../services/propertyService';
+import OffersManagementModal from './components/OffersManagementModal';
 import './MyProperties.css';
 
 export default function MyProperties() {
@@ -18,6 +19,7 @@ export default function MyProperties() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [listingStats, setListingStats] = useState({ totalListings: 0, pendingOffers: 0 });
   const [loading, setLoading] = useState(true);
+  const [selectedPropertyForOffers, setSelectedPropertyForOffers] = useState(null);
 
   // Sync tab state with URL
   useEffect(() => {
@@ -196,6 +198,7 @@ export default function MyProperties() {
                       <div>
                         <h4 style={{ margin: '0 0 8px 0' }}>{req.requestType === 'tenancy' ? 'Tenancy Request' : req.requestType === 'vacancy' ? 'Vacancy Request' : 'Ownership Transfer'} - {req.propertyId.title}</h4>
                         <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem', color: '#4b5563' }}><strong>From:</strong> {req.requesterId.name} ({req.requesterId.email})</p>
+                        {req.offerPrice && <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem', color: '#10b981', fontWeight: 'bold' }}><strong>Accepted Offer Price:</strong> ₹{req.offerPrice.toLocaleString('en-IN')}</p>}
                         {req.message && <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem', color: '#4b5563' }}><strong>Note:</strong> {req.message}</p>}
                         {req.requestType === 'tenancy' && req.startDate && req.endDate && (
                           <p style={{ margin: 0, fontSize: '0.9rem', color: '#4b5563' }}>
@@ -228,7 +231,7 @@ export default function MyProperties() {
                   ) : p.listingType === 'rent' ? (
                     <RentalCard key={p._id} r={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} />
                   ) : (
-                    <SaleCard key={p._id} p={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} />
+                    <SaleCard key={p._id} p={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} onViewOffers={(id) => setSelectedPropertyForOffers(id)} />
                   )
                 ))}
               </div>
@@ -249,15 +252,15 @@ export default function MyProperties() {
                   const totalDays = Math.round((new Date(tenancy.endDate) - new Date(tenancy.startDate)) / msPerDay);
                   const totalRent = Math.round((tenancy.monthlyRent / 30) * totalDays);
                   return (
-                  <div key={tenancy._id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <RentalCard r={tenancy.propertyId} />
-                    <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}>
-                      <p style={{ margin: '0 0 4px 0' }}><strong>Rent:</strong> ₹{tenancy.monthlyRent.toLocaleString('en-IN')}/mo</p>
-                      <p style={{ margin: '0 0 4px 0' }}><strong>Lease Start:</strong> {new Date(tenancy.startDate).toLocaleDateString()}</p>
-                      <p style={{ margin: '0 0 4px 0' }}><strong>Lease End:</strong> {new Date(tenancy.endDate).toLocaleDateString()}</p>
-                      <p style={{ margin: 0, color: '#10b981' }}><strong>Total Rent for Term:</strong> ₹{totalRent.toLocaleString('en-IN')}</p>
+                    <div key={tenancy._id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <RentalCard r={tenancy.propertyId} />
+                      <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}>
+                        <p style={{ margin: '0 0 4px 0' }}><strong>Rent:</strong> ₹{tenancy.monthlyRent.toLocaleString('en-IN')}/mo</p>
+                        <p style={{ margin: '0 0 4px 0' }}><strong>Lease Start:</strong> {new Date(tenancy.startDate).toLocaleDateString()}</p>
+                        <p style={{ margin: '0 0 4px 0' }}><strong>Lease End:</strong> {new Date(tenancy.endDate).toLocaleDateString()}</p>
+                        <p style={{ margin: 0, color: '#10b981' }}><strong>Total Rent for Term:</strong> ₹{totalRent.toLocaleString('en-IN')}</p>
+                      </div>
                     </div>
-                  </div>
                   );
                 })}
               </div>
@@ -265,6 +268,20 @@ export default function MyProperties() {
           </div>
         )}
       </main>
+
+      {selectedPropertyForOffers && (
+        <OffersManagementModal
+          propertyId={selectedPropertyForOffers}
+          onClose={() => setSelectedPropertyForOffers(null)}
+          onOfferStatusChange={async () => {
+            const fetchRes = await getMyListings();
+            if (fetchRes.data && fetchRes.data.success) {
+              setMyListings(fetchRes.data.data);
+              setListingStats(fetchRes.data.stats || { totalListings: 0, pendingOffers: 0 });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

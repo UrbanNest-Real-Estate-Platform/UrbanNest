@@ -137,7 +137,7 @@ export function AuctionCard({ a, isOwner, onEdit, onDelete }) {
 }
 
 /* ─── SALE CARD ─── */
-export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDelete }) {
+export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDelete, onViewOffers }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [loved, setLoved] = useState(isInitiallySaved || false)
@@ -178,6 +178,11 @@ export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDel
         ) : null}
         {isOwner ? (
           <div className="un-owner-actions" style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8, zIndex: 10 }}>
+            {p.listingType === 'sell' && p.isNegotiable && onViewOffers && (
+              <button onClick={(e) => { e.stopPropagation(); onViewOffers(p._id || p.id); }} style={{ background: 'white', border: 'none', padding: '4px 8px', borderRadius: '16px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600, color: '#4f46e5' }}>
+                Offers
+              </button>
+            )}
             <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(p._id || p.id); }} style={{ background: 'white', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Pencil size={18} color="#4b5563" />
             </button>

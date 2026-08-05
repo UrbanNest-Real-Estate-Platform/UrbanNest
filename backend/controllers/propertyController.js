@@ -531,6 +531,14 @@ const submitPropertyRequest = async (req, res) => {
             message
         };
 
+        if (requestType === 'ownership_transfer') {
+            const Offer = require("../models/Offer");
+            const acceptedOffer = await Offer.findOne({ propertyId: id, buyerId: req.user._id, status: 'Accepted' });
+            if (acceptedOffer) {
+                requestData.offerPrice = acceptedOffer.offerPrice;
+            }
+        }
+
         if (requestType === 'tenancy') {
             if (!startDate || !endDate) {
                 return res.status(400).json({ success: false, message: "startDate and endDate are required for tenancy requests" });
@@ -617,7 +625,7 @@ const reviewPropertyRequest = async (req, res) => {
                 property.salesHistory.push({
                     sellerId: property.ownerId,
                     buyerId: propertyRequest.requesterId,
-                    soldPrice: property.totalPrice,
+                    soldPrice: propertyRequest.offerPrice || property.totalPrice,
                     soldAt: new Date()
                 });
 
@@ -626,6 +634,33 @@ const reviewPropertyRequest = async (req, res) => {
                 property.status = 'Sold';
                 await property.save();
 
+                // Reject all pending/accepted offers for this property since it's sold (except for the buyer)
+                const Offer = require("../models/Offer");
+                const otherOffers = await Offer.find({ 
+                    propertyId: property._id, 
+                    buyerId: { $ne: propertyRequest.requesterId },
+                    status: { $in: ['Pending', 'Accepted'] } 
+                });
+                if (otherOffers.length > 0) {
+                    await Offer.updateMany(
+                        { propertyId: property._id, buyerId: { $ne: propertyRequest.requesterId } },
+                        { $set: { status: 'Rejected' } }
+                    );
+                    const notifications = otherOffers.map(o => ({
+                        userId: o.buyerId,
+                        type: "OFFER_UPDATE",
+                        title: "Offer Rejected",
+                        message: `Your offer for "${property.title}" has been rejected because the property was sold to someone else.`,
+                        targetLink: `/dashboard`
+                    }));
+                    await Notification.insertMany(notifications);
+                }
+
+                // Archive the buyer's accepted offer, if it exists
+                await Offer.updateMany(
+                    { propertyId: property._id, buyerId: propertyRequest.requesterId, status: 'Accepted' },
+                    { $set: { status: 'Archived' } }
+                );
             } else if (propertyRequest.requestType === 'tenancy') {
                 // Set all existing Tenancies to inactive
                 await Tenancy.updateMany({ propertyId: property._id }, { isActive: false });
