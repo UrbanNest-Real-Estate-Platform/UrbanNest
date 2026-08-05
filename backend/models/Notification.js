@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["TRANSFER_REQUEST", "TENANCY_REQUEST", "VACANCY_REQUEST", "PRICE_DROP"],
+            enum: ["TRANSFER_REQUEST", "TENANCY_REQUEST", "VACANCY_REQUEST", "PRICE_DROP", "OFFER_UPDATE"],
             required: true
         },
         title: {
