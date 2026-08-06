@@ -768,32 +768,7 @@
 
 .builder-listing-mode-tag.sale { background: #eef2ff; color: var(--primary); border: 1px solid var(--primary-light); }
 .builder-listing-mode-tag.rental { background: #f0fdfa; color: var(--teal); border: 1px solid var(--teal-light); }
-.builder-listing-mode-tag.auction { background: #fffbeb; color: var(--amber); border: 1px solid #fde68a; }
 
-.builder-reserve-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-.builder-reserve-indicator.met { background: #ecfdf5; color: var(--green); border: 1px solid #a7f3d0; }
-.builder-reserve-indicator.pending { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
-
-.builder-antisniping-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 4px;
-}
 
 .builder-transfer-box {
   background: #ffffff;

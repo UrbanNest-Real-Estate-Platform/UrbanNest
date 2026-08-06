@@ -220,6 +220,9 @@ export default function DashboardNavbar({ scrolled = false }) {
               <Link to="/dashboard" className="un-dropdown-item" onClick={() => setMenuOpen(false)}>
                 Dashboard
               </Link>
+              <Link to="/profile" className="un-dropdown-item" onClick={() => setMenuOpen(false)}>
+                Profile
+              </Link>
               <Link to="/my-properties?tab=saved" className="un-dropdown-item" onClick={() => setMenuOpen(false)}>
                 Saved Properties
               </Link>

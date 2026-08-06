@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
-const { saveProperty, unsaveProperty, getSavedProperties, getMyListings, getMyRents, getPendingRequests } = require("../controllers/userController");
+const { saveProperty, unsaveProperty, getSavedProperties, getMyListings, getMyRents, getPendingRequests, updateProfile, markRecentlyViewed, getRecentlyViewed } = require("../controllers/userController");
 
 router.use(protect);
+router.put("/profile", updateProfile);
+router.post("/recently-viewed/:id", markRecentlyViewed);
+router.get("/recently-viewed", getRecentlyViewed);
 router.put("/save-property/:id", saveProperty);
 router.put("/unsave-property/:id", unsaveProperty);
 router.get("/saved-properties", getSavedProperties);

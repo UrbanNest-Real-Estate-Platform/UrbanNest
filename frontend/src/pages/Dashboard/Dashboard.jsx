@@ -1,22 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { getLiveAuctions, getFeaturedSaleProperties, getRentalProperties } from '../../services/propertyService';
+import { getFeaturedSaleProperties, getRentalProperties } from '../../services/propertyService';
+import { getRecentlyViewed } from '../../services/userService';
 import api from '../../services/axios';
-import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 import DashboardNavbar from "../../components/DashboardNavbar/DashboardNavbar";
-import { AuctionCard, SaleCard, RentalCard, CompactCard } from "../../components/PropertyCards/PropertyCards";
+import { SaleCard, RentalCard, CompactCard } from "../../components/PropertyCards/PropertyCards";
 import { IconArrow, IconSearch } from "../../components/Icons/Icons";
 
-const RECENTLY_VIEWED = [
-  { id: 1, title: "Skyline Penthouse", loc: "Bandra West", price: "₹4.2 Cr", image: "https://images.unsplash.com/photo-1757924461488-ef9ad0670978?w=128&h=128&fit=crop&auto=format" },
-  { id: 2, title: "Aranya Hill House", loc: "Powai", price: "₹2.75 Cr", image: "https://images.unsplash.com/photo-1721815693498-cc28507c0ba2?w=128&h=128&fit=crop&auto=format" },
-  { id: 3, title: "Sunlit Corner 3BHK", loc: "Bandra East", price: "₹75K/mo", image: "https://images.unsplash.com/photo-1638454668466-e8dbd5462f20?w=128&h=128&fit=crop&auto=format" },
-  { id: 4, title: "Grand Duplex Villa", loc: "Juhu", price: "₹7.85 Cr", image: "https://images.unsplash.com/photo-1653972233597-05822baa3c4e?w=128&h=128&fit=crop&auto=format" },
-  { id: 5, title: "Opaline Tower", loc: "Goregaon East", price: "₹1.18 Cr", image: "https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?w=128&h=128&fit=crop&auto=format" },
-  { id: 6, title: "Heritage Library Flat", loc: "Colaba", price: "₹1.2L/mo", image: "https://images.unsplash.com/photo-1780257562925-d78de6cb6612?w=128&h=128&fit=crop&auto=format" },
-];
+
 
 /* ─── ICONS ─── */
 /* ─── MAIN APP ─── */
@@ -28,9 +21,9 @@ export default function Dashboard() {
   const [bhk, setBhk] = useState('')
   const [price, setPrice] = useState('')
 
-  const [auctions, setAuctions] = useState([])
   const [sales, setSales] = useState([])
   const [rentals, setRentals] = useState([])
+  const [recentlyViewed, setRecentlyViewed] = useState([])
   const [loading, setLoading] = useState(true)
   const [savedPropertyIds, setSavedPropertyIds] = useState(new Set())
 
@@ -41,17 +34,25 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const auctionsRes = await getLiveAuctions().catch(() => ({ data: { data: [] } }));
         const salesRes = await getFeaturedSaleProperties().catch(() => ({ data: { data: [] } }));
         const rentalsRes = await getRentalProperties().catch(() => ({ data: { data: [] } }));
         const userRes = await api.get('/auth/me').catch(() => null);
 
-        setAuctions(auctionsRes.data?.data || []);
         setSales(salesRes.data?.data || []);
         setRentals(rentalsRes.data?.data || []);
 
-        if (userRes?.data?.success && userRes.data.user.savedPropertyIds) {
-          setSavedPropertyIds(new Set(userRes.data.user.savedPropertyIds));
+        if (userRes?.data?.success) {
+          if (userRes.data.user.savedPropertyIds) {
+            setSavedPropertyIds(new Set(userRes.data.user.savedPropertyIds));
+          }
+          try {
+            const historyRes = await getRecentlyViewed();
+            if (historyRes.data?.success) {
+              setRecentlyViewed(historyRes.data.data.filter(item => item.propertyId)); // ensure propertyId is populated and exists
+            }
+          } catch (e) {
+            console.error("Failed to load history", e);
+          }
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -64,7 +65,7 @@ export default function Dashboard() {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    const listingType = activeTab === 'Buy' ? 'sell' : activeTab === 'Rent' ? 'rent' : 'auction';
+    const listingType = activeTab === 'Buy' ? 'sell' : 'rent';
     params.append('listing_type', listingType);
     if (locality) params.append('locality', locality);
 
@@ -126,7 +127,7 @@ export default function Dashboard() {
 
           <div className="un-search-box">
             <div className="un-search-tabs" role="tablist">
-              {['Buy', 'Rent', 'Auction'].map(tab => (
+              {['Buy', 'Rent'].map(tab => (
                 <button
                   key={tab}
                   className={`un-search-tab${activeTab === tab ? ' active' : ''}`}
@@ -134,7 +135,7 @@ export default function Dashboard() {
                   aria-selected={activeTab === tab}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab === 'Buy' ? '🏡 Buy' : tab === 'Rent' ? '🔑 Rent' : '⚡ Auction'}
+                  {tab === 'Buy' ? '🏡 Buy' : '🔑 Rent'}
                 </button>
               ))}
             </div>
@@ -176,25 +177,6 @@ export default function Dashboard() {
 
       {/* ── MAIN CONTENT ── */}
       <main className="un-main">
-
-        {/* Section 1: Live Auctions */}
-        <section className="un-section" aria-labelledby="auctions-title">
-          <div className="un-section-header">
-            <div>
-              <div className="un-section-label">Live Right Now</div>
-              <h2 className="un-section-title" id="auctions-title">⚡ Live Auctions Ending Soon</h2>
-            </div>
-            <a className="un-section-link" href="#" aria-label="View all auctions" onClick={(e) => { e.preventDefault(); navigate('/search?listing_type=auction'); }}>
-              View all <IconArrow />
-            </a>
-          </div>
-          <div className="un-dashboard-grid" role="list" aria-label="Live auction properties">
-            {loading ? <p style={{ padding: '20px' }}>Loading auctions...</p> : auctions.slice(0, 6).map(a => (
-              <AuctionCard key={a._id || a.id} a={a} />
-            ))}
-            {!loading && auctions.length === 0 && <p style={{ padding: '20px' }}>No live auctions currently.</p>}
-          </div>
-        </section>
 
         {/* Section 2: Featured Sale */}
         <section className="un-section" aria-labelledby="sale-title">
@@ -241,16 +223,33 @@ export default function Dashboard() {
               <div className="un-section-label">Pick Up Where You Left Off</div>
               <h2 className="un-section-title" id="recent-title">👁️ Recently Viewed</h2>
             </div>
-            <a className="un-section-link" href="#" aria-label="View browsing history">
-              See history <IconArrow />
-            </a>
           </div>
           <div className="un-carousel" role="list" aria-label="Recently viewed properties">
-            {RECENTLY_VIEWED.map(p => (
-              <div key={p.id} role="listitem">
-                <CompactCard p={p} />
-              </div>
-            ))}
+            {recentlyViewed.length === 0 ? (
+              <p style={{ padding: '20px', color: '#6b7280' }}>You haven't viewed any properties yet.</p>
+            ) : (
+              recentlyViewed.map(item => {
+                const prop = item.propertyId;
+                if (!prop) return null;
+                const formattedPrice = prop.listingType === 'rent'
+                  ? `${prop.totalPrice || prop.rent} /mo`
+                  : `${prop.totalPrice || prop.price}`;
+
+                // Map to CompactCard expected props
+                const mappedProp = {
+                  id: prop._id,
+                  title: prop.title,
+                  loc: prop.address?.locality || prop.location || '',
+                  price: formattedPrice,
+                  image: (prop.images && prop.images.length > 0) ? prop.images[0] : 'https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?w=128&h=128&fit=crop&auto=format'
+                };
+                return (
+                  <div key={item._id} role="listitem">
+                    <CompactCard p={mappedProp} />
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
 

@@ -52,7 +52,6 @@ async function run() {
 
                         let listingType = 'sell';
                         if (row.PREFERENCE === 'R') listingType = 'rent';
-                        else if (row.PREFERENCE === 'A') listingType = 'auction';
 
                         let lat = 0;
                         let lng = 0;

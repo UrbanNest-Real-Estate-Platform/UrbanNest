@@ -454,37 +454,7 @@
     background: #f3f4f6;
 }
 
-/* Auction Reminder */
-.auction-reminder {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    padding: 16px;
-    border-radius: 8px;
-    margin-top: 16px;
-    text-align: center;
-}
-.ar-title {
-    color: #d97706;
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-.ar-btn {
-    background: #d97706;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-}
-.ar-btn:hover {
-    background: #b45309;
-}
+
 
 /* Sales History Timeline */
 .timeline {

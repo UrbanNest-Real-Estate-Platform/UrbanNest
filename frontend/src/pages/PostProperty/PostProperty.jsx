@@ -49,9 +49,7 @@ export default function PostProperty() {
   const [maintenance, setMaintenance] = useState('');
   const [isNegotiable, setIsNegotiable] = useState(false);
 
-  // Auction specific
-  const [auctionStartTime, setAuctionStartTime] = useState('');
-  const [auctionEndTime, setAuctionEndTime] = useState('');
+
 
   // Specs
   const [areaSqft, setAreaSqft] = useState('');
@@ -117,13 +115,7 @@ export default function PostProperty() {
             setSecurityDeposit(p.securityDeposit || '');
             setMaintenance(p.maintenance || '');
             setIsNegotiable(p.isNegotiable || false);
-            
-            if (p.listingType === 'auction') {
-              // Convert date to datetime-local format (YYYY-MM-DDTHH:mm)
-              if (p.auctionStartTime) setAuctionStartTime(new Date(p.auctionStartTime).toISOString().slice(0, 16));
-              if (p.auctionEndTime) setAuctionEndTime(new Date(p.auctionEndTime).toISOString().slice(0, 16));
-            }
-            
+
             setAreaSqft(p.specs?.areaSqft || '');
             setBedrooms(p.specs?.bedrooms || '');
             setBathrooms(p.specs?.bathrooms || '');
@@ -218,10 +210,7 @@ export default function PostProperty() {
         images,
       };
 
-      if (listingType === 'auction') {
-        propertyData.auctionStartTime = auctionStartTime;
-        propertyData.auctionEndTime = auctionEndTime;
-      }
+
 
       let res;
       if (isEditMode) {
@@ -283,7 +272,6 @@ export default function PostProperty() {
                 <select className="pp-select" value={listingType} onChange={e => setListingType(e.target.value)}>
                   <option value="sell">For Sale</option>
                   <option value="rent">For Rent</option>
-                  <option value="auction">Auction</option>
                 </select>
               </div>
               {isEditMode && (
@@ -305,7 +293,7 @@ export default function PostProperty() {
             <h2 className="pp-section-title">2. Pricing</h2>
             <div className="pp-grid">
               <div className="pp-field">
-                <label>{listingType === 'rent' ? 'Monthly Rent (₹) *' : listingType === 'auction' ? 'Starting Bid (₹) *' : 'Total Price (₹) *'}</label>
+                <label>{listingType === 'rent' ? 'Monthly Rent (₹) *' : 'Total Price (₹) *'}</label>
                 <input required type="number" min="0" className="pp-input" placeholder="e.g. 15000000" value={totalPrice} onChange={e => setTotalPrice(e.target.value)} />
               </div>
 
@@ -328,18 +316,7 @@ export default function PostProperty() {
                 </div>
               )}
 
-              {listingType === 'auction' && (
-                <>
-                  <div className="pp-field">
-                    <label>Auction Start Time *</label>
-                    <input required={listingType === 'auction'} type="datetime-local" className="pp-input" value={auctionStartTime} onChange={e => setAuctionStartTime(e.target.value)} />
-                  </div>
-                  <div className="pp-field">
-                    <label>Auction End Time *</label>
-                    <input required={listingType === 'auction'} type="datetime-local" className="pp-input" value={auctionEndTime} onChange={e => setAuctionEndTime(e.target.value)} />
-                  </div>
-                </>
-              )}
+
             </div>
           </div>
 

@@ -99,9 +99,8 @@ const INITIAL_PROJECTS = [
     name: 'DLF Ultima',
     location: 'Sector 81, Gurgaon',
     totalUnits: 120,
-    availableUnits: 28,
+    availableUnits: 48,
     bookedUnits: 72,
-    auctionUnits: 20,
     priceRange: '₹1.8 Cr - ₹3.5 Cr',
     image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=380&fit=crop&auto=format',
     reraNo: 'RC/REP/HARERA/GGM/2021/412',
@@ -110,7 +109,6 @@ const INITIAL_PROJECTS = [
     amenities: ['Infinity Swimming Pool', 'Clubhouse & Spa', '24/7 Security & CCTV', 'Vastu Compliant', 'EV Charging Bays', 'Sky Lounge'],
     unitsConfig: [
       { unitId: 'u101', type: '3BHK Luxury Suite', mode: 'Direct Sale', area: '2,100 sqft', price: '₹1.85 Cr', reservePrice: '₹1.75 Cr', status: 'Available' },
-      { unitId: 'u102', type: '4BHK Grand Duplex', mode: 'Live Auction', area: '3,400 sqft', price: '₹2.90 Cr', reservePrice: '₹2.70 Cr', status: 'Auctioning' },
       { unitId: 'u103', type: 'Sky Penthouse', mode: 'Rental', area: '5,200 sqft', price: '₹1,50,000/mo', reservePrice: 'N/A', status: 'Available' }
     ],
     documents: [
@@ -123,9 +121,8 @@ const INITIAL_PROJECTS = [
     name: 'Godrej Woods',
     location: 'Sector 43, Noida',
     totalUnits: 90,
-    availableUnits: 15,
+    availableUnits: 25,
     bookedUnits: 65,
-    auctionUnits: 10,
     priceRange: '₹2.2 Cr - ₹4.1 Cr',
     image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=380&fit=crop&auto=format',
     reraNo: 'UPRERAPRJ771649',
@@ -133,8 +130,7 @@ const INITIAL_PROJECTS = [
     description: 'Godrej Woods offers resort-style living surrounded by an urban forest with over 600 trees, an elevated walkway, and private splash pools.',
     amenities: ['Urban Forest & Walkway', 'Temperature Controlled Pool', 'Sports Complex', 'High-Speed Elevators', 'Concierge Service'],
     unitsConfig: [
-      { unitId: 'u201', type: '2BHK Forest View', mode: 'Direct Sale', area: '1,250 sqft', price: '₹2.20 Cr', reservePrice: '₹2.10 Cr', status: 'Booked' },
-      { unitId: 'u202', type: '3BHK Sanctuary Flat', mode: 'Live Auction', area: '2,050 sqft', price: '₹3.10 Cr', reservePrice: '₹2.95 Cr', status: 'Auctioning' }
+      { unitId: 'u201', type: '2BHK Forest View', mode: 'Direct Sale', area: '1,250 sqft', price: '₹2.20 Cr', reservePrice: '₹2.10 Cr', status: 'Booked' }
     ],
     documents: [
       { id: 'd3', title: 'Godrej Woods Environmental Clearance.pdf', category: 'Environmental', status: 'Verified', date: '2026-07-02' }
@@ -145,9 +141,8 @@ const INITIAL_PROJECTS = [
     name: 'Oberoi Sky City',
     location: 'Borivali East, Mumbai',
     totalUnits: 150,
-    availableUnits: 42,
+    availableUnits: 52,
     bookedUnits: 98,
-    auctionUnits: 10,
     priceRange: '₹3.1 Cr - ₹6.8 Cr',
     image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=380&fit=crop&auto=format',
     reraNo: 'P51800003582',
@@ -155,8 +150,7 @@ const INITIAL_PROJECTS = [
     description: 'Oberoi Sky City stands tall overlooking the Sanjay Gandhi National Park, blending architectural elegance with international luxury lifestyle.',
     amenities: ['Panoramic Park Views', 'Olympics-size Pool', 'Private Theater', 'Helipad Access', 'Multilevel Parking'],
     unitsConfig: [
-      { unitId: 'u301', type: '3BHK Sea-View Tower', mode: 'Direct Sale', area: '1,950 sqft', price: '₹3.10 Cr', reservePrice: '₹3.00 Cr', status: 'Available' },
-      { unitId: 'u302', type: 'Presidential Penthouse', mode: 'Live Auction', area: '6,100 sqft', price: '₹6.80 Cr', reservePrice: '₹6.50 Cr', status: 'Auctioning' }
+      { unitId: 'u301', type: '3BHK Sea-View Tower', mode: 'Direct Sale', area: '1,950 sqft', price: '₹3.10 Cr', reservePrice: '₹3.00 Cr', status: 'Available' }
     ],
     documents: [
       { id: 'd4', title: 'Oberoi Sky City Structural Audit Report.pdf', category: 'Structural Audit', status: 'Under Review', date: '2026-07-28' }
@@ -171,11 +165,6 @@ const INITIAL_DOCUMENTS = [
   { id: 'd4', title: 'Oberoi Sky City Structural Audit Report.pdf', project: 'Oberoi Sky City', category: 'Structural Audit', status: 'Under Review', date: '2026-07-28' },
 ];
 
-const INITIAL_BIDS = [
-  { id: 'b1', unit: 'DLF Ultima - Unit 1402 (4BHK)', buyer: 'rajesh.kumar@gmail.com', amount: '₹2,95,00,000', reservePrice: '₹2,70,00,000', reserveMet: true, status: 'Active Bid', antiSnipingActive: true, time: '14 mins ago' },
-  { id: 'b2', unit: 'Godrej Woods - Villa 08', buyer: 'priya.sharma@yahoo.com', amount: '₹3,80,00,000', reservePrice: '₹4,00,00,000', reserveMet: false, status: 'Active Bid', antiSnipingActive: false, time: '1 hour ago' },
-  { id: 'b3', unit: 'Oberoi Sky City - Penthouse 3001', buyer: 'vikram.mehta@corp.com', amount: '₹6,65,00,000', reservePrice: '₹6,50,00,000', reserveMet: true, status: 'Pending Review', antiSnipingActive: true, time: '3 hours ago' },
-];
 
 const INITIAL_TRANSFERS = [
   { id: 't1', unit: 'DLF Ultima - Unit 904', buyerEmail: 'anand.verma@gmail.com', finalPrice: '₹2,10,00,000', date: '2026-08-02', status: 'Handshake Pending' },
@@ -209,7 +198,7 @@ function BuilderDashboard() {
     totalUnits: '',
     priceRange: '',
     reraNo: '',
-    listingMode: 'Direct Sale', // Direct Sale, Rental, Live Auction
+    listingMode: 'Direct Sale', // Direct Sale, Rental
     reservePrice: ''
   });
 
@@ -223,7 +212,6 @@ function BuilderDashboard() {
   // State Collections
   const [projectsList, setProjectsList] = useState(INITIAL_PROJECTS);
   const [docVault, setDocVault] = useState(INITIAL_DOCUMENTS);
-  const [bidsQueue, setBidsQueue] = useState(INITIAL_BIDS);
   const [transferHistory, setTransferHistory] = useState(INITIAL_TRANSFERS);
 
   useEffect(() => {
@@ -259,7 +247,6 @@ function BuilderDashboard() {
       totalUnits: Number(newProject.totalUnits) || 50,
       availableUnits: Number(newProject.totalUnits) || 50,
       bookedUnits: 0,
-      auctionUnits: newProject.listingMode === 'Live Auction' ? 10 : 0,
       priceRange: newProject.priceRange || '₹1.5 Cr - ₹3.0 Cr',
       image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=380&fit=crop&auto=format',
       reraNo: newProject.reraNo || 'HARERA/PENDING/2026',
@@ -380,14 +367,6 @@ function BuilderDashboard() {
             </button>
 
             <div className="builder-menu-section-title">Sales & Workflow</div>
-            <button
-              className={`builder-nav-item ${activeTab === 'lead-queue' ? 'active' : ''}`}
-              onClick={() => setActiveTab('lead-queue')}
-            >
-              <IconQueue />
-              <span>Lead & Bid Queue</span>
-              <span className="builder-nav-badge amber">{bidsQueue.length}</span>
-            </button>
 
             <button
               className={`builder-nav-item ${activeTab === 'transfer-workflow' ? 'active' : ''}`}
@@ -447,7 +426,6 @@ function BuilderDashboard() {
               {activeTab === 'projects' && 'My Developments & Inventory'}
               {activeTab === 'add-project' && 'Add New Project / Bulk Import'}
               {activeTab === 'document-vault' && 'RERA & Document Vault'}
-              {activeTab === 'lead-queue' && 'Lead & Bid Queue'}
               {activeTab === 'transfer-workflow' && 'Ownership Transfer Workflow'}
               {activeTab === 'sales-analytics' && 'Sales Analytics & Demand'}
               {activeTab === 'profile' && 'Builder Profile & Verification'}
@@ -496,14 +474,6 @@ function BuilderDashboard() {
                   <span className="builder-stat-trend up">↑ +24.8% impressions</span>
                 </div>
 
-                <div className="builder-stat-card">
-                  <div className="builder-stat-top">
-                    <span className="builder-stat-label">Active Auction Bids</span>
-                    <div className="builder-stat-icon amber">🔨</div>
-                  </div>
-                  <div className="builder-stat-value">42 Bids</div>
-                  <span className="builder-stat-trend up">↑ 8 closing today</span>
-                </div>
 
                 <div className="builder-stat-card">
                   <div className="builder-stat-top">
@@ -534,7 +504,7 @@ function BuilderDashboard() {
                         <th>Total Units</th>
                         <th>Available</th>
                         <th>Booked</th>
-                        <th>In Auction</th>
+
                         <th>Action</th>
                       </tr>
                     </thead>
@@ -547,7 +517,7 @@ function BuilderDashboard() {
                           <td>{p.totalUnits} Units</td>
                           <td><span style={{ color: 'var(--teal)', fontWeight: '600' }}>{p.availableUnits}</span></td>
                           <td>{p.bookedUnits}</td>
-                          <td><span style={{ color: 'var(--amber)', fontWeight: '600' }}>{p.auctionUnits}</span></td>
+
                           <td>
                             <button
                               className="builder-btn-secondary"
@@ -566,31 +536,7 @@ function BuilderDashboard() {
 
               {/* Quick Actions & Recent Bids */}
               <div className="builder-grid-2">
-                <div className="builder-section-card">
-                  <div className="builder-section-header">
-                    <h3>Live Auction Stream & Bids</h3>
-                    <button className="builder-btn-secondary" onClick={() => setActiveTab('lead-queue')}>Queue</button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {bidsQueue.map((b) => (
-                      <div key={b.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
-                        <div>
-                          <div style={{ fontWeight: '700', fontSize: '13.5px' }}>{b.unit}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Buyer: {b.buyer} • {b.time}</div>
-                          {b.antiSnipingActive && (
-                            <span className="builder-antisniping-badge">⏱️ Anti-Sniping Active (+2m)</span>
-                          )}
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: '800', color: 'var(--primary)', fontSize: '14px' }}>{b.amount}</div>
-                          <span className={`builder-reserve-indicator ${b.reserveMet ? 'met' : 'pending'}`}>
-                            {b.reserveMet ? 'Reserve Met ✓' : 'Reserve Pending ⚠️'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+
 
                 <div className="builder-section-card">
                   <div className="builder-section-header">
@@ -647,13 +593,13 @@ function BuilderDashboard() {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
                         <span>Inventory Status</span>
-                        <span><strong>{p.bookedUnits + p.auctionUnits}</strong> / {p.totalUnits} Allocated</span>
+                        <span><strong>{p.bookedUnits}</strong> / {p.totalUnits} Allocated</span>
                       </div>
 
                       <div className="builder-progress-bar">
                         <div
                           className="builder-progress-fill"
-                          style={{ width: `${Math.round(((p.bookedUnits + p.auctionUnits) / p.totalUnits) * 100)}%` }}
+                          style={{ width: `${Math.round(((p.bookedUnits) / p.totalUnits) * 100)}%` }}
                         ></div>
                       </div>
 
@@ -665,10 +611,6 @@ function BuilderDashboard() {
                         <div style={{ background: 'var(--bg-subtle)', padding: '8px', borderRadius: '6px' }}>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Booked</div>
                           <div style={{ fontWeight: '700', color: 'var(--primary)' }}>{p.bookedUnits}</div>
-                        </div>
-                        <div style={{ background: 'var(--bg-subtle)', padding: '8px', borderRadius: '6px' }}>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Auctions</div>
-                          <div style={{ fontWeight: '700', color: 'var(--amber)' }}>{p.auctionUnits}</div>
                         </div>
                       </div>
 
@@ -727,7 +669,6 @@ function BuilderDashboard() {
                       >
                         <option value="Direct Sale">🏷️ Direct Sale (Fixed Asking Price)</option>
                         <option value="Rental">🔑 Rental (Monthly Rent & Deposit)</option>
-                        <option value="Live Auction">🔨 Live Auction (Bidding Stream)</option>
                       </select>
                     </div>
 
@@ -751,17 +692,6 @@ function BuilderDashboard() {
                       />
                     </div>
 
-                    {newProject.listingMode === 'Live Auction' && (
-                      <div className="builder-form-group">
-                        <label>Confidential Reserve Price (₹)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. ₹1.70 Cr"
-                          value={newProject.reservePrice}
-                          onChange={(e) => setNewProject({ ...newProject, reservePrice: e.target.value })}
-                        />
-                      </div>
-                    )}
 
                     <div className="builder-form-group">
                       <label>RERA Registration Number</label>
@@ -865,61 +795,6 @@ function BuilderDashboard() {
             </div>
           )}
 
-          {/* TAB 4: LEAD & BID QUEUE */}
-          {activeTab === 'lead-queue' && (
-            <div>
-              <div className="builder-section-header">
-                <h3>Live Auction Bids Stream & Anti-Sniping Monitor</h3>
-              </div>
-
-              <div className="builder-section-card">
-                <div className="builder-table-wrapper">
-                  <table className="builder-table">
-                    <thead>
-                      <tr>
-                        <th>Property Unit</th>
-                        <th>Buyer Email</th>
-                        <th>Highest Bid</th>
-                        <th>Reserve Status</th>
-                        <th>Anti-Sniping Protection</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bidsQueue.map((bid) => (
-                        <tr key={bid.id}>
-                          <td><strong>{bid.unit}</strong></td>
-                          <td>{bid.buyer}</td>
-                          <td><strong style={{ color: 'var(--primary)' }}>{bid.amount}</strong></td>
-                          <td>
-                            <span className={`builder-reserve-indicator ${bid.reserveMet ? 'met' : 'pending'}`}>
-                              {bid.reserveMet ? 'Reserve Met ✓' : 'Reserve Pending ⚠️'}
-                            </span>
-                          </td>
-                          <td>
-                            {bid.antiSnipingActive ? (
-                              <span className="builder-antisniping-badge">⏱️ Active (+2m on late bids)</span>
-                            ) : (
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Timer</span>
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              className="builder-btn-primary"
-                              style={{ padding: '4px 10px', fontSize: '12px' }}
-                              onClick={() => toast.success(`Accepted bid for ${bid.unit}`)}
-                            >
-                              Accept Bid
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* TAB 5: MANUAL OWNERSHIP TRANSFER WORKFLOW */}
           {activeTab === 'transfer-workflow' && (
@@ -938,7 +813,7 @@ function BuilderDashboard() {
                         onChange={(e) => setTransferForm({ ...transferForm, unitName: e.target.value })}
                         required
                       >
-                        <option value="">-- Choose Booked / Auctioned Unit --</option>
+                        <option value="">-- Choose Booked Unit --</option>
                         <option value="DLF Ultima - Unit 1402">DLF Ultima - Unit 1402 (4BHK Duplex)</option>
                         <option value="Godrej Woods - Villa 08">Godrej Woods - Villa 08</option>
                         <option value="Oberoi Sky City - Penthouse 3001">Oberoi Sky City - Penthouse 3001</option>
@@ -1033,15 +908,6 @@ function BuilderDashboard() {
                       </div>
                     </div>
 
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '600' }}>
-                        <span>Penthouse Suites (Auctioning)</span>
-                        <span>94% Bid Conversion</span>
-                      </div>
-                      <div className="builder-progress-bar">
-                        <div className="builder-progress-fill" style={{ width: '94%' }}></div>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -1238,97 +1104,94 @@ function BuilderDashboard() {
                   <div style={{ fontSize: '12px', color: 'var(--primary)' }}>Booked</div>
                   <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>{selectedProject.bookedUnits}</div>
                 </div>
-                <div style={{ background: '#fffbeb', padding: '14px', borderRadius: '10px', border: '1px solid #fde68a' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--amber)' }}>In Auction</div>
-                  <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--amber)' }}>{selectedProject.auctionUnits}</div>
+              </div>
+            </div>
+
+            {/* Unit Configurations & Inventory Matrix */}
+            {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Matrix (Master ID: <code>{selectedProject.id}</code>)</h4>
+                <div className="builder-table-wrapper">
+                  <table className="builder-table">
+                    <thead>
+                      <tr>
+                        <th>Unit ID</th>
+                        <th>Unit Type</th>
+                        <th>Listing Mode</th>
+                        <th>Carpet Area</th>
+                        <th>Asking / Start Price</th>
+                        <th>Reserve Price</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedProject.unitsConfig.map((u, idx) => (
+                        <tr key={idx}>
+                          <td><code>{u.unitId}</code></td>
+                          <td><strong>{u.type}</strong></td>
+                          <td>
+                            <span className={`builder-listing-mode-tag ${u.mode === 'Direct Sale' ? 'sale' : 'rental'}`}>
+                              {u.mode}
+                            </span>
+                          </td>
+                          <td>{u.area}</td>
+                          <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
+                          <td><span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{u.reservePrice}</span></td>
+                          <td>
+                            <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : 'sold'}`}>
+                              {u.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            )}
 
-              {/* Unit Configurations & Inventory Matrix */}
-              {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Matrix (Master ID: <code>{selectedProject.id}</code>)</h4>
-                  <div className="builder-table-wrapper">
-                    <table className="builder-table">
-                      <thead>
-                        <tr>
-                          <th>Unit ID</th>
-                          <th>Unit Type</th>
-                          <th>Listing Mode</th>
-                          <th>Carpet Area</th>
-                          <th>Asking / Start Price</th>
-                          <th>Reserve Price</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedProject.unitsConfig.map((u, idx) => (
-                          <tr key={idx}>
-                            <td><code>{u.unitId}</code></td>
-                            <td><strong>{u.type}</strong></td>
-                            <td>
-                              <span className={`builder-listing-mode-tag ${u.mode === 'Direct Sale' ? 'sale' : u.mode === 'Rental' ? 'rental' : 'auction'}`}>
-                                {u.mode}
-                              </span>
-                            </td>
-                            <td>{u.area}</td>
-                            <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
-                            <td><span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{u.reservePrice}</span></td>
-                            <td>
-                              <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : u.status === 'Auctioning' ? 'pending' : 'sold'}`}>
-                                {u.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            {/* Verified Amenities */}
+            {selectedProject.amenities && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {selectedProject.amenities.map((item, idx) => (
+                    <span className="builder-amenity-chip" key={idx}>
+                      ✓ {item}
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Verified Amenities */}
-              {selectedProject.amenities && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedProject.amenities.map((item, idx) => (
-                      <span className="builder-amenity-chip" key={idx}>
-                        ✓ {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Attached RERA Documents */}
-              {selectedProject.documents && selectedProject.documents.length > 0 && (
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {selectedProject.documents.map((doc) => (
-                      <div
-                        key={doc.id}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
-                        onClick={() => { setSelectedProject(null); setSelectedDoc(doc); }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
-                          <IconFilePdf />
-                          <span>{doc.title}</span>
-                        </div>
-                        <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
-                          Preview PDF
-                        </button>
+            {/* Attached RERA Documents */}
+            {selectedProject.documents && selectedProject.documents.length > 0 && (
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedProject.documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                      onClick={() => { setSelectedProject(null); setSelectedDoc(doc); }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
+                        <IconFilePdf />
+                        <span>{doc.title}</span>
                       </div>
-                    ))}
-                  </div>
+                      <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                        Preview PDF
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

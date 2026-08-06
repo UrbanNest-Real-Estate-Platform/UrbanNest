@@ -18,7 +18,7 @@ function Hero() {
 
                 <p>
 
-                    Buy, sell, rent, or bid on verified properties across India.
+                    Buy, sell, or rent verified properties across India.
 
                     One account, zero hassle with AI powered insights.
 
@@ -88,7 +88,7 @@ function Hero() {
 
                 <div className="floating two">
 
-                    Live Auction
+                    Premium Property
 
                     ₹2.4 Crore
 

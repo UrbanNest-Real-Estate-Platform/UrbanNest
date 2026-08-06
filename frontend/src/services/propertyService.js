@@ -1,8 +1,5 @@
 import api from "./axios";
 
-export const getLiveAuctions = async () => {
-    return await api.get("/properties/auctions");
-};
 
 export const getFeaturedSaleProperties = async () => {
     return await api.get("/properties/featured-sale");

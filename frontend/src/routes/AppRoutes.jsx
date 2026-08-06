@@ -17,6 +17,7 @@ import Search from "../pages/Search/Search";
 import PropertyDetail from "../pages/PropertyDetail/PropertyDetail";
 import MyProperties from "../pages/MyProperties/MyProperties";
 import PostProperty from "../pages/PostProperty/PostProperty";
+import Profile from "../pages/Profile/Profile";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 import BuilderProtectedRoute from "../components/BuilderProtectedRoute";
@@ -126,6 +127,15 @@ function AppRoutes() {
                     element={
                         <ProtectedRoute>
                             <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/profile"
+                    element={
+                        <ProtectedRoute>
+                            <Profile />
                         </ProtectedRoute>
                     }
                 />
