@@ -179,13 +179,19 @@ function BuilderDashboard() {
   const printIframeRef = useRef(null);
 
   // Authenticated Builder State
-  const [builder, setBuilder] = useState(() => {
+  const [builder] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) return JSON.parse(savedUser);
     } catch {
-      return null;
+      // ignore
     }
+    return {
+      companyName: "DLF Urban Developers Ltd",
+      ownerName: "Rajiv Singh",
+      email: "contact@dlfurban.com",
+      registrationNumber: "HARERA/GGM/2026/9021",
+    };
   });
 
   // Navigation Tab State
@@ -230,6 +236,7 @@ function BuilderDashboard() {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mlInput, activeTab]);
 
   // Modal View States
@@ -287,18 +294,6 @@ function BuilderDashboard() {
   const [acceptedInquiries, setAcceptedInquiries] = useState(INITIAL_ACCEPTED_DEALS);
   const [transferHistory, setTransferHistory] = useState(INITIAL_TRANSFERS);
 
-  useEffect(() => {
-    if (!builder) {
-      setBuilder({
-        companyName: "DLF Urban Developers Ltd",
-        ownerName: "Rajiv Singh",
-        email: "contact@dlfurban.com",
-        registrationNumber: "HARERA/GGM/2026/9021",
-      });
-    }
-    loadProjectsFromDatabase();
-  }, []);
-
   const loadProjectsFromDatabase = async () => {
     try {
       setLoadingProjects(true);
@@ -312,6 +307,11 @@ function BuilderDashboard() {
       setLoadingProjects(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadProjectsFromDatabase();
+  }, []);
 
   // Extract all documents dynamically from MongoDB project data + local custom uploads with Blob URLs
   const getAllDocumentsFromDB = () => {
@@ -448,20 +448,6 @@ function BuilderDashboard() {
       return toast.error("Please fill in project name and location.");
     }
 
-    const created = {
-      id: `proj_${Date.now()}`,
-      name: newProject.name,
-      location: newProject.location,
-      totalUnits: Number(newProject.totalUnits) || 50,
-      availableUnits: Number(newProject.totalUnits) || 50,
-      bookedUnits: 0,
-      priceRange: newProject.priceRange || '₹1.5 Cr - ₹3.0 Cr',
-      image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=380&fit=crop&auto=format',
-      reraNo: newProject.reraNo || 'HARERA/PENDING/2026',
-      status: 'Active',
-      description: `New builder development under project hierarchy (${newProject.name}). Configured for ${newProject.listingMode}.`,
-      amenities: ['Clubhouse & Pool', '24/7 Security & CCTV', 'Vastu Compliant', 'EV Charging'],
-      unitsConfig: [
     try {
       const documentsArr = newProject.initialDocTitle.trim() ? [
         {
@@ -603,8 +589,8 @@ function BuilderDashboard() {
       loadProjectsFromDatabase();
       setShowDocUploadModal(false);
       setDocUploadForm({ title: '', category: 'Site Plan', projectId: '', fileName: '', fileUrl: null });
-    } catch (error) {
-      toast.success(`Document "${docData.title}" attached to project vault!`);
+    } catch {
+      toast.error(`Failed to attach document to project vault!`);
       setShowDocUploadModal(false);
     }
   };
@@ -641,7 +627,7 @@ function BuilderDashboard() {
         try {
           printIframeRef.current.contentWindow.focus();
           printIframeRef.current.contentWindow.print();
-        } catch (err) {
+        } catch {
           window.print();
         }
       }, 500);
@@ -658,8 +644,10 @@ function BuilderDashboard() {
 
     if (confirmed) {
       setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inq.id));
+      // eslint-disable-next-line react-hooks/purity
+      const newId = `acc_${Date.now()}`;
       const newAcceptedDeal = {
-        id: `acc_${Date.now()}`,
+        id: newId,
         unit: inq.unit,
         buyer: inq.buyer,
         offer: inq.offer,
@@ -693,25 +681,6 @@ function BuilderDashboard() {
   };
 
   const docVault = getAllDocumentsFromDB();
-  // Handle Document Upload
-  const handleDocUpload = (e) => {
-    if (e) e.preventDefault();
-    if (!uploadForm.title.trim()) {
-      return toast.error("Please enter a document title");
-    }
-    const newDoc = {
-      id: `d${Date.now()}`,
-      title: uploadForm.title.trim().endsWith('.pdf') ? uploadForm.title.trim() : `${uploadForm.title.trim()}.pdf`,
-      project: uploadForm.project || projectsList[0]?.name || 'DLF Ultima',
-      category: uploadForm.category || 'RERA Approval',
-      status: 'Under Review',
-      date: new Date().toISOString().split('T')[0],
-    };
-    setDocVault([newDoc, ...docVault]);
-    setShowUploadModal(false);
-    setUploadForm({ title: '', category: 'RERA Approval', project: '' });
-    toast.success("Document uploaded to vault for RERA verification!");
-  };
 
   return (
     <div className="builder-dashboard-layout">
@@ -1073,7 +1042,6 @@ function BuilderDashboard() {
                             style={{ width: `${Math.round((p.bookedUnits / (p.totalUnits || 1)) * 100)}%` }}
                           ></div>
                         </div>
-                      </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px', textAlign: 'center' }}>
                           <div style={{ background: 'var(--bg-subtle)', padding: '8px', borderRadius: '6px' }}>
@@ -2096,78 +2064,76 @@ function BuilderDashboard() {
               </div>
             </div>
 
-              {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Specs</h4>
-                  <div className="builder-table-wrapper">
-                    <table className="builder-table">
-                      <thead>
-                        <tr>
-                          <th>Unit ID</th>
-                          <th>Unit Type</th>
-                          <th>Listing Mode</th>
-                          <th>Carpet Area</th>
-                          <th>Asking Price</th>
-                          <th>Status</th>
+            {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Specs</h4>
+                <div className="builder-table-wrapper">
+                  <table className="builder-table">
+                    <thead>
+                      <tr>
+                        <th>Unit ID</th>
+                        <th>Unit Type</th>
+                        <th>Listing Mode</th>
+                        <th>Carpet Area</th>
+                        <th>Asking Price</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedProject.unitsConfig.map((u, idx) => (
+                        <tr key={idx}>
+                          <td><code>{u.unitId}</code></td>
+                          <td><strong>{u.type}</strong></td>
+                          <td>
+                            <span className={`builder-listing-mode-tag ${u.mode === 'Rental' ? 'rental' : 'sale'}`}>
+                              {u.mode}
+                            </span>
+                          </td>
+                          <td>{u.area}</td>
+                          <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
+                          <td>
+                            <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : 'sold'}`}>
+                              {u.status}
+                            </span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {selectedProject.unitsConfig.map((u, idx) => (
-                          <tr key={idx}>
-                            <td><code>{u.unitId}</code></td>
-                            <td><strong>{u.type}</strong></td>
-                            <td>
-                              <span className={`builder-listing-mode-tag ${u.mode === 'Rental' ? 'rental' : 'sale'}`}>
-                                {u.mode}
-                              </span>
-                            </td>
-                            <td>{u.area}</td>
-                            <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
-                            <td>
-                              <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : 'sold'}`}>
-                                {u.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {selectedProject.amenities && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedProject.amenities.map((item, idx) => (
-                      <span className="builder-amenity-chip" key={idx}>
-                        ✓ {item}
-                      </span>
-                    ))}
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
 
-              {selectedProject.documents && selectedProject.documents.length > 0 && (
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {selectedProject.documents.map((doc, idx) => (
-                      <div
-                        key={idx}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
-                        onClick={() => { setSelectedProject(null); handleOpenDocument(doc); }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
-                          <IconFilePdf />
-                          <span>{doc.title}</span>
-                        </div>
-                        <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
-                          Open Document
-                        </button>
+            {selectedProject.amenities && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {selectedProject.amenities.map((item, idx) => (
+                    <span className="builder-amenity-chip" key={idx}>
+                      ✓ {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedProject.documents && selectedProject.documents.length > 0 && (
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedProject.documents.map((doc, idx) => (
+                    <div
+                      key={idx}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                      onClick={() => { setSelectedProject(null); handleOpenDocument(doc); }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
+                        <IconFilePdf />
+                        <span>{doc.title}</span>
                       </div>
+                      <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                        Open Document
+                      </button>
                       <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
                         Preview PDF
                       </button>

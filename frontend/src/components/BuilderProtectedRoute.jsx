@@ -11,6 +11,7 @@ function BuilderProtectedRoute({ children }) {
 
     if (!builder) {
         return <Navigate to="/login/builder" replace />;
+    }
     if (!user || user.role !== "builder") {
         return <Navigate to="/" replace />;
     }
