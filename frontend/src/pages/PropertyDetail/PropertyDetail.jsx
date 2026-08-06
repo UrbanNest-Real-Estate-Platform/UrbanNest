@@ -3,6 +3,7 @@ import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/axios';
 import { toast } from 'react-toastify';
 import { deleteProperty } from '../../services/propertyService';
+import { markRecentlyViewed } from '../../services/userService';
 import './PropertyDetail.css';
 
 // Import subcomponents
@@ -10,7 +11,7 @@ import LocationMap from './components/LocationMap';
 import FinancialCalculator from './components/FinancialCalculator';
 import AppreciationBadge from './components/AppreciationBadge';
 import OfferModal from './components/OfferModal';
-import AuctionReminder from './components/AuctionReminder';
+
 import ProjectBanner from './components/ProjectBanner';
 import SalesHistoryTimeline from './components/SalesHistoryTimeline';
 import PropertyRequestModal from './components/PropertyRequestModal';
@@ -78,6 +79,14 @@ export default function PropertyDetail() {
                         if (userRes.data.user.savedPropertyIds) {
                             setIsSaved(userRes.data.user.savedPropertyIds.includes(id));
                         }
+                        
+                        // Mark as recently viewed
+                        try {
+                            await markRecentlyViewed(id);
+                        } catch (err) {
+                            console.log("Failed to mark property as recently viewed");
+                        }
+                        
                         // Fetch existing offer if property is negotiable
                         if (propertyRes.data.data.listingType === 'sell' && propertyRes.data.data.isNegotiable) {
                             try {
@@ -292,9 +301,7 @@ export default function PropertyDetail() {
                         
                         <AppreciationBadge history={property.salesHistory} currentPrice={existingOffer?.status === 'Accepted' ? existingOffer.offerPrice : property.totalPrice} />
 
-                        {property.listingType === 'auction' ? (
-                            <AuctionReminder property={property} />
-                        ) : property.listingType === 'sell' && property.isNegotiable && property.status !== 'Sold' && (!currentUser || (property.ownerId && currentUser._id !== property.ownerId._id)) && (!existingOffer || existingOffer.status === 'Pending') && (
+                        {property.listingType === 'sell' && property.isNegotiable && property.status !== 'Sold' && (!currentUser || (property.ownerId && currentUser._id !== property.ownerId._id)) && (!existingOffer || existingOffer.status === 'Pending') && (
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowOfferModal(true)} style={{ flex: 1 }}>
                                     {existingOffer ? 'View/Edit Your Offer' : 'Make an Offer'}

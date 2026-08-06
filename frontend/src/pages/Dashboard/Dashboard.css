@@ -483,154 +483,7 @@ html {
   }
 }
 
-/* ─── AUCTION CARD ─── */
-.un-card-auction {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--card-shadow);
-  transition: transform var(--transition), box-shadow var(--transition);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-width: 0;
-}
-.un-card-auction:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--card-shadow-hover);
-}
-.un-card-img-wrap {
-  position: relative;
-  width: 100%;
-  height: 190px;
-  background: var(--bg-muted);
-  overflow: hidden;
-}
-.un-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
-}
-.un-card-auction:hover .un-card-img { transform: scale(1.03); }
 
-.un-tag-live {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(239,68,68,0.9);
-  backdrop-filter: blur(6px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-pill);
-  padding: 4px 10px;
-  letter-spacing: 0.3px;
-}
-.un-live-dot {
-  width: 6px;
-  height: 6px;
-  background: #fff;
-  border-radius: 50%;
-  animation: pulse 1.2s ease infinite;
-}
-.un-tag-bids {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(6px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: var(--radius-pill);
-  padding: 4px 10px;
-}
-.un-card-body {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.un-card-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.un-card-loc {
-  font-size: 12.5px;
-  color: var(--text-muted);
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.un-card-loc svg { width: 12px; height: 12px; flex-shrink: 0; }
-
-.un-countdown-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
-  margin-bottom: 14px;
-}
-.un-countdown-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.un-countdown-time {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--red);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.3px;
-}
-
-.un-bid-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.un-bid-label { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 2px; }
-.un-bid-amount { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
-.un-bid-amount span { font-size: 13px; font-weight: 500; color: var(--text-muted); }
-
-.un-btn-bid {
-  width: 100%;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  height: 40px;
-  font-size: 13.5px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background var(--transition), transform var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: auto;
-}
-.un-btn-bid:hover { background: var(--primary-hover); transform: translateY(-1px); }
-.un-btn-bid svg { width: 14px; height: 14px; }
 
 /* ─── PROPERTY CARD (SALE) ─── */
 .un-card-sale {
@@ -652,6 +505,22 @@ html {
 }
 .un-card-sale:hover .un-card-img { transform: scale(1.03); }
 
+.un-card-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: var(--bg-muted);
+}
+
+.un-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition);
+}
+
+
 .un-img-dots {
   position: absolute;
   bottom: 10px;
@@ -667,6 +536,39 @@ html {
   background: rgba(255,255,255,0.6);
 }
 .un-img-dot.active { background: #fff; width: 14px; border-radius: 3px; }
+
+.un-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.un-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.un-card-loc {
+  font-size: 13px;
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.un-card-loc svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 
 .un-card-price {
   font-size: 19px;

@@ -35,7 +35,7 @@ const propertySchema = new mongoose.Schema(
         listingType: {
             type: String,
             required: true,
-            enum: ["sell", "rent", "auction"]
+            enum: ["sell", "rent"]
         },
 
         totalPrice: {
@@ -155,32 +155,6 @@ const propertySchema = new mongoose.Schema(
                 }
             }
         ],
-
-        auctionStartTime: {
-            type: Date,
-            default: null,
-            required: function () {
-                return this.listingType === "auction";
-            }
-        },
-
-        auctionEndTime: {
-            type: Date,
-            default: null,
-            required: function () {
-                return this.listingType === "auction";
-            },
-            validate: {
-                validator: function (value) {
-                    // Ensure end time is strictly after start time
-                    if (this.listingType === "auction" && this.auctionStartTime && value) {
-                        return value > this.auctionStartTime;
-                    }
-                    return true;
-                },
-                message: "Auction end time must be after auction start time."
-            }
-        },
     },
     {
         timestamps: true    // Created createdAt, updatedAt automatically and updates the updatedAt field automatically

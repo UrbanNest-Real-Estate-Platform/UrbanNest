@@ -448,6 +448,20 @@ function BuilderDashboard() {
       return toast.error("Please fill in project name and location.");
     }
 
+    const created = {
+      id: `proj_${Date.now()}`,
+      name: newProject.name,
+      location: newProject.location,
+      totalUnits: Number(newProject.totalUnits) || 50,
+      availableUnits: Number(newProject.totalUnits) || 50,
+      bookedUnits: 0,
+      priceRange: newProject.priceRange || '₹1.5 Cr - ₹3.0 Cr',
+      image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=380&fit=crop&auto=format',
+      reraNo: newProject.reraNo || 'HARERA/PENDING/2026',
+      status: 'Active',
+      description: `New builder development under project hierarchy (${newProject.name}). Configured for ${newProject.listingMode}.`,
+      amenities: ['Clubhouse & Pool', '24/7 Security & CCTV', 'Vastu Compliant', 'EV Charging'],
+      unitsConfig: [
     try {
       const documentsArr = newProject.initialDocTitle.trim() ? [
         {
@@ -921,6 +935,7 @@ function BuilderDashboard() {
                         <th>Total Units</th>
                         <th>Available</th>
                         <th>Booked</th>
+
                         <th>RERA ID</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -934,6 +949,7 @@ function BuilderDashboard() {
                           <td>{p.totalUnits} Units</td>
                           <td><span style={{ color: 'var(--teal)', fontWeight: '600' }}>{p.availableUnits}</span></td>
                           <td>{p.bookedUnits}</td>
+
                           <td><code style={{ fontSize: '12px', background: 'var(--bg-subtle)', padding: '2px 6px', borderRadius: '4px' }}>{p.reraNo}</code></td>
                           <td><span className="builder-status-badge active">{p.status}</span></td>
                           <td>
@@ -954,6 +970,7 @@ function BuilderDashboard() {
 
               {/* Quick Actions & Recent Inquiries */}
               <div className="builder-grid-2">
+
                 <div className="builder-section-card">
                   <div className="builder-section-header">
                     <h3>Pending Buyer Inquiries</h3>
@@ -1056,6 +1073,7 @@ function BuilderDashboard() {
                             style={{ width: `${Math.round((p.bookedUnits / (p.totalUnits || 1)) * 100)}%` }}
                           ></div>
                         </div>
+                      </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px', textAlign: 'center' }}>
                           <div style={{ background: 'var(--bg-subtle)', padding: '8px', borderRadius: '6px' }}>
@@ -1189,6 +1207,7 @@ function BuilderDashboard() {
                         onChange={(e) => setNewProject({ ...newProject, priceRange: e.target.value })}
                       />
                     </div>
+
 
                     <div className="builder-form-group">
                       <label>RERA Registration Number</label>
@@ -1623,6 +1642,7 @@ function BuilderDashboard() {
                         <div className="builder-progress-fill" style={{ width: '68%' }}></div>
                       </div>
                     </div>
+
                   </div>
                 </div>
 
@@ -2074,6 +2094,7 @@ function BuilderDashboard() {
                   <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>{selectedProject.bookedUnits}</div>
                 </div>
               </div>
+            </div>
 
               {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
                 <div style={{ marginBottom: '28px' }}>
@@ -2126,7 +2147,8 @@ function BuilderDashboard() {
                     ))}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {selectedProject.documents && selectedProject.documents.length > 0 && (
                 <div>
@@ -2146,15 +2168,19 @@ function BuilderDashboard() {
                           Open Document
                         </button>
                       </div>
-                    ))}
-                  </div>
+                      <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                        Preview PDF
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

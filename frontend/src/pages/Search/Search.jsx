@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchProperties } from '../../services/propertyService';
-import { SaleCard, RentalCard, AuctionCard } from '../../components/PropertyCards/PropertyCards';
+import { SaleCard, RentalCard } from '../../components/PropertyCards/PropertyCards';
 import './Search.css';
 
 export default function Search() {
@@ -65,7 +65,7 @@ export default function Search() {
                     <h3>Found {pagination.total} Properties</h3>
                     {listingType && (
                         <span className="search-badge">
-                            {listingType === 'sell' ? 'Buy' : listingType === 'rent' ? 'Rent' : 'Auction'}
+                            {listingType === 'sell' ? 'Buy' : 'Rent'}
                         </span>
                     )}
                 </div>
@@ -81,9 +81,7 @@ export default function Search() {
                     <>
                         <div className="results-grid">
                             {properties.map(p => (
-                                p.listingType === 'auction' ? (
-                                    <AuctionCard key={p._id} a={p} />
-                                ) : p.listingType === 'rent' ? (
+                                p.listingType === 'rent' ? (
                                     <RentalCard key={p._id} r={p} />
                                 ) : (
                                     <SaleCard key={p._id} p={p} />

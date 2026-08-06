@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 // @desc    Save property to wishlist
 // @route   PUT /api/users/save-property/:id
@@ -62,6 +63,7 @@ const getSavedProperties = async (req, res) => {
 
 const Property = require("../models/Property");
 const Offer = require("../models/Offer");
+const RecentlyViewed = require("../models/RecentlyViewed");
 
 // @desc    Get user's listings
 // @route   GET /api/users/my-listings
@@ -160,4 +162,127 @@ const getPendingRequests = async (req, res) => {
     }
 };
 
-module.exports = { saveProperty, unsaveProperty, getSavedProperties, getMyListings, getMyRents, getPendingRequests };
+// @desc    Update user profile
+// @route   PUT /api/users/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: "Only authenticated users can update their profile" });
+        }
+
+        const { name, email, phoneNumber, cityOfResidence, currentPassword, newPassword } = req.body;
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Handle profile fields update
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (cityOfResidence) user.cityOfResidence = cityOfResidence;
+
+        // Handle password update if requested
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ success: false, message: "Current password is required to set a new password" });
+            }
+
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: "Incorrect current password" });
+            }
+
+            if (newPassword.length < 8) {
+                return res.status(400).json({ success: false, message: "New password must be at least 8 characters long" });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                cityOfResidence: user.cityOfResidence,
+            }
+        });
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// @desc    Mark a property as recently viewed
+// @route   POST /api/users/recently-viewed/:id
+// @access  Private
+const markRecentlyViewed = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: "Only authenticated users can mark properties as viewed" });
+        }
+        const propertyId = req.params.id;
+
+        // Check if property exists
+        const propertyExists = await Property.findById(propertyId);
+        if (!propertyExists) {
+            return res.status(404).json({ success: false, message: "Property not found" });
+        }
+
+        await RecentlyViewed.findOneAndUpdate(
+            { userId: req.user._id, propertyId },
+            { $set: { viewedAt: Date.now() } },
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+        );
+
+        // Enforce maximum of 10 recently viewed entries per user
+        const excessEntries = await RecentlyViewed.find({ userId: req.user._id })
+            .sort({ viewedAt: -1 })
+            .skip(10);
+
+        if (excessEntries.length > 0) {
+            const excessIds = excessEntries.map(entry => entry._id);
+            await RecentlyViewed.deleteMany({ _id: { $in: excessIds } });
+        }
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Error marking recently viewed:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// @desc    Get recently viewed properties
+// @route   GET /api/users/recently-viewed
+// @access  Private
+const getRecentlyViewed = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: "Only authenticated users can view history" });
+        }
+
+        const history = await RecentlyViewed.find({ userId: req.user._id })
+            .sort({ viewedAt: -1 })
+            .limit(10)
+            .populate('propertyId');
+
+        res.status(200).json({
+            success: true,
+            data: history
+        });
+    } catch (error) {
+        console.error("Error fetching recently viewed:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+module.exports = { saveProperty, unsaveProperty, getSavedProperties, getMyListings, getMyRents, getPendingRequests, updateProfile, markRecentlyViewed, getRecentlyViewed };

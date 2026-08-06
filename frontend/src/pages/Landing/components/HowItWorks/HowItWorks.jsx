@@ -11,7 +11,7 @@ const steps = [
     number: "02",
     title: "Explore Properties",
     description:
-      "Search verified listings, auctions and builder projects using smart filters."
+      "Search verified listings and builder projects using smart filters."
   },
   {
     number: "03",

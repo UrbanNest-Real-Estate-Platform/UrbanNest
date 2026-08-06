@@ -4,7 +4,6 @@ const router = express.Router();
 
 const {
     searchProperties,
-    getLiveAuctions,
     getFeaturedSaleProperties,
     getRentalProperties,
     getRecentlyViewed,
@@ -37,7 +36,6 @@ router.put("/requests/:requestId/review", reviewPropertyRequest);
 
 // Feed & Search routes
 router.get("/search", searchProperties);
-router.get("/auctions", getLiveAuctions);
 router.get("/featured-sale", getFeaturedSaleProperties);
 router.get("/rentals", getRentalProperties);
 router.post("/recently-viewed", getRecentlyViewed);

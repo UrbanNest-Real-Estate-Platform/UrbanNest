@@ -8,9 +8,9 @@ const faqData = [
       "Yes. Buyers, tenants, sellers and landlords can create an account and explore properties for free.",
   },
   {
-    question: "How do property auctions work?",
+    question: "How do I make an offer?",
     answer:
-      "Builders and sellers can list auction properties. Buyers place bids in real time and the highest valid bid wins.",
+      "Buyers can make an offer directly on any property that is marked as negotiable. Sellers can review and accept the best offer.",
   },
   {
     question: "Are all properties verified?",

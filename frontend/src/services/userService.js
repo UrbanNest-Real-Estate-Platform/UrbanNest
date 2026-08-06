@@ -15,3 +15,15 @@ export const getMyRents = () => {
 export const getPendingRequests = () => {
     return api.get("/users/pending-requests");
 };
+
+export const updateProfile = (data) => {
+    return api.put("/users/profile", data);
+};
+
+export const markRecentlyViewed = (propertyId) => {
+    return api.post(`/users/recently-viewed/${propertyId}`);
+};
+
+export const getRecentlyViewed = () => {
+    return api.get("/users/recently-viewed");
+};
