@@ -51,13 +51,13 @@ function BuilderLogin() {
 
             localStorage.setItem("token", response.data.token);
 
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    ...response.data.builder,
-                    role: "builder"
-                })
-            );
+            const builderData = {
+                ...response.data.builder,
+                role: "builder"
+            };
+
+            localStorage.setItem("user", JSON.stringify(builderData));
+            localStorage.setItem("builder", JSON.stringify(builderData));
 
             setFormData({
                 email: "",

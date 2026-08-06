@@ -416,14 +416,12 @@ const loginBuilder = async (req, res) => {
 };
 
 const getCurrentUser = async (req, res) => {
-    const currentUser = req.user || req.builder;
-    const currentRole = req.user ? "user" : "builder";
 
     res.status(200).json({
         success: true,
-        user: currentUser,
-        role: currentRole
+        user: req.user
     });
+
 };
 
 const loginAdmin = async (req,res) =>{

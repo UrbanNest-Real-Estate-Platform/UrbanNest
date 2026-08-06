@@ -11,7 +11,8 @@ const getDashboardStats = async (req, res) => {
             totalBuilders,
             totalProperties,
             pendingBuilders,
-            listingMix
+            listingMix,
+            totalValuation
         ] = await Promise.all([
 
             User.countDocuments(),
@@ -33,6 +34,15 @@ const getDashboardStats = async (req, res) => {
                         }
                     }
                 }
+            ]),
+
+            Property.aggregate([
+                {
+                    $group:{
+                        _id: null,
+                        totalAmount: { $sum: "$totalPrice" }
+                    }
+                }
             ])
 
         ]);
@@ -44,10 +54,12 @@ const getDashboardStats = async (req, res) => {
                 + item._id.slice(1),
 
             value:
-                Math.round(
+                totalProperties > 0 ? Math.round(
                     (item.count / totalProperties) * 100
-                )
+                ) : 0
         }));
+
+        const totalPropertyValue = totalValuation.length > 0 ? totalValuation[0].totalAmount : 0;
 
 
         res.status(200).json({
@@ -60,6 +72,7 @@ const getDashboardStats = async (req, res) => {
                 totalBuilders,
                 totalProperties,
                 pendingBuilders,
+                totalPropertyValue,
                 listingMix: formattedListingMix
 
             }
@@ -83,6 +96,137 @@ const getDashboardStats = async (req, res) => {
 
 };
 
+const getPendingBuilders = async (req, res) => {
+    try {
+        const builders = await Builder.find({ isVerified: false });
+        res.status(200).json({
+            success: true,
+            builders
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch pending builders"
+        });
+    }
+};
+
+const verifyBuilder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const builder = await Builder.findById(id);
+        if (!builder) {
+            return res.status(404).json({
+                success: false,
+                message: "Builder not found"
+            });
+        }
+        builder.isVerified = true;
+        if (builder.documents && builder.documents.length > 0) {
+            builder.documents.forEach(doc => {
+                doc.status = "Verified";
+            });
+        }
+        await builder.save();
+        res.status(200).json({
+            success: true,
+            message: "Builder verified successfully",
+            builder
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to verify builder"
+        });
+    }
+};
+
+const rejectBuilder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const builder = await Builder.findByIdAndDelete(id);
+        if (!builder) {
+            return res.status(404).json({
+                success: false,
+                message: "Builder not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "Builder application rejected"
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to reject builder application"
+        });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findByIdAndDelete(id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User account deleted successfully"
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete user account"
+        });
+    }
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().select("-password").sort({ createdAt: -1 });
+        res.status(200).json({
+            success: true,
+            users
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch users"
+        });
+    }
+};
+
+const getAllBuilders = async (req, res) => {
+    try {
+        const builders = await Builder.find().select("-password").sort({ createdAt: -1 });
+        res.status(200).json({
+            success: true,
+            builders
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch builders"
+        });
+    }
+};
+
 module.exports = {
-    getDashboardStats
+    getDashboardStats,
+    getPendingBuilders,
+    verifyBuilder,
+    rejectBuilder,
+    getAllUsers,
+    getAllBuilders,
+    deleteUser
 };

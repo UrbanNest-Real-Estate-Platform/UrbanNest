@@ -88,11 +88,6 @@
   font-weight: 600;
 }
 
-.builder-nav-item.sub-item {
-  padding-left: 38px;
-  font-size: 13.5px;
-}
-
 .builder-nav-badge {
   margin-left: auto;
   background: var(--primary);
@@ -216,12 +211,6 @@
   position: sticky;
   top: 0;
   z-index: 90;
-}
-
-.builder-header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .builder-header-title h2 {
@@ -368,7 +357,6 @@
 }
 
 .builder-stat-trend.up { color: var(--green); }
-.builder-stat-trend.down { color: var(--red); }
 
 /* Card Sections */
 .builder-section-card {
@@ -650,7 +638,7 @@
   flex: 1;
 }
 
-/* ─── PDF PREVIEW MODAL SPECIFIC ─── */
+/* ─── PDF PREVIEW MODAL ─── */
 .builder-pdf-toolbar {
   background: #1e293b;
   color: #f8fafc;
@@ -744,16 +732,6 @@
   color: var(--text-sub);
 }
 
-.builder-clickable-row {
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.builder-clickable-row:hover {
-  background: #f1f5f9 !important;
-}
-
-/* ─── BLUEPRINT SPECIFIC BUILDER STYLES ─── */
 .builder-listing-mode-tag {
   display: inline-flex;
   align-items: center;
@@ -769,13 +747,11 @@
 .builder-listing-mode-tag.sale { background: #eef2ff; color: var(--primary); border: 1px solid var(--primary-light); }
 .builder-listing-mode-tag.rental { background: #f0fdfa; color: var(--teal); border: 1px solid var(--teal-light); }
 
-
-.builder-transfer-box {
-  background: #ffffff;
-  border: 1px dashed var(--primary-light);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-top: 16px;
+.builder-clickable-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-
+.builder-clickable-row:hover {
+  background: #f1f5f9 !important;
+}
