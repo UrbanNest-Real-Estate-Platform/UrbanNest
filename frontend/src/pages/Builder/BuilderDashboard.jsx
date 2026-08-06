@@ -307,17 +307,23 @@ function BuilderDashboard() {
     toast.success(`Ownership transfer handshake sent to ${newTransfer.buyerEmail}!`);
   };
 
-  // Handle Document Upload Simulation
-  const handleDocUpload = () => {
+  // Handle Document Upload
+  const handleDocUpload = (e) => {
+    if (e) e.preventDefault();
+    if (!uploadForm.title.trim()) {
+      return toast.error("Please enter a document title");
+    }
     const newDoc = {
       id: `d${Date.now()}`,
-      title: `Site_Plan_${Date.now().toString().slice(-4)}.pdf`,
-      project: projectsList[0]?.name || 'DLF Ultima',
-      category: 'Site Plan',
+      title: uploadForm.title.trim().endsWith('.pdf') ? uploadForm.title.trim() : `${uploadForm.title.trim()}.pdf`,
+      project: uploadForm.project || projectsList[0]?.name || 'DLF Ultima',
+      category: uploadForm.category || 'RERA Approval',
       status: 'Under Review',
       date: new Date().toISOString().split('T')[0],
     };
     setDocVault([newDoc, ...docVault]);
+    setShowUploadModal(false);
+    setUploadForm({ title: '', category: 'RERA Approval', project: '' });
     toast.success("Document uploaded to vault for RERA verification!");
   };
 
