@@ -679,6 +679,25 @@ function BuilderDashboard() {
   };
 
   const docVault = getAllDocumentsFromDB();
+  // Handle Document Upload
+  const handleDocUpload = (e) => {
+    if (e) e.preventDefault();
+    if (!uploadForm.title.trim()) {
+      return toast.error("Please enter a document title");
+    }
+    const newDoc = {
+      id: `d${Date.now()}`,
+      title: uploadForm.title.trim().endsWith('.pdf') ? uploadForm.title.trim() : `${uploadForm.title.trim()}.pdf`,
+      project: uploadForm.project || projectsList[0]?.name || 'DLF Ultima',
+      category: uploadForm.category || 'RERA Approval',
+      status: 'Under Review',
+      date: new Date().toISOString().split('T')[0],
+    };
+    setDocVault([newDoc, ...docVault]);
+    setShowUploadModal(false);
+    setUploadForm({ title: '', category: 'RERA Approval', project: '' });
+    toast.success("Document uploaded to vault for RERA verification!");
+  };
 
   return (
     <div className="builder-dashboard-layout">

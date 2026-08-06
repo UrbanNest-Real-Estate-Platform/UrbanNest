@@ -309,8 +309,8 @@ const getPropertyById = async (req, res) => {
 const createProperty = async (req, res) => {
     try {
         const {
-            title, description, propertyType, listingType, totalPrice,
-            securityDeposit, maintenance, isNegotiable, status, specs,
+            title, description, propertyType, listingType, totalPrice, 
+            securityDeposit, maintenance, isNegotiable, status, specs, 
             address, location, images, auctionStartTime, auctionEndTime
         } = req.body;
 
@@ -392,17 +392,17 @@ const updateProperty = async (req, res) => {
         property.maintenance = maintenance !== undefined ? maintenance : property.maintenance;
         property.isNegotiable = isNegotiable !== undefined ? isNegotiable : property.isNegotiable;
         property.status = status || property.status;
-
+        
         if (specs) property.specs = specs;
         if (address) property.address = address;
-
+        
         if (location && location.coordinates) {
             property.location = {
                 type: 'Point',
                 coordinates: location.coordinates
             };
         }
-
+        
         if (images) property.images = images;
 
         if (property.listingType === 'auction') {

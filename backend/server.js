@@ -22,7 +22,7 @@ const app = express();
 
 app.use(cors({
     origin: "http://localhost:5173",
-    credentials: true
+    credentials: true //Allows cookies and authentication information to be sent.
 }));
 
 app.use(express.json({ limit: "50mb" }));
@@ -40,8 +40,11 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/ml", mlRoutes);
 
-app.get("/", (req, res) => {
-    res.send("UrbanNest Backend Running");
+app.get("/api", (req, res) => {
+    res.status(200).json({
+        success:true,
+        message : "UrbanNest API is Running"
+    })
 });
 
 const PORT = process.env.PORT || 3120;
