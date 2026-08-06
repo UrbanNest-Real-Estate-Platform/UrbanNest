@@ -817,6 +817,36 @@ html {
   letter-spacing: -0.3px;
 }
 
+/* ─── STATUS BADGES & INACTIVE CARDS ─── */
+.un-status-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+  border-radius: var(--radius-pill);
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.un-status-badge.slate { background: #64748b; }
+.un-status-badge.teal { background: #0f766e; }
+.un-status-badge.amber { background: #d97706; }
+
+.un-card-inactive {
+  opacity: 0.75;
+  filter: grayscale(40%);
+  border-color: var(--border-light);
+  background: var(--bg-muted);
+}
+.un-card-inactive:hover {
+  opacity: 0.85;
+  filter: grayscale(20%);
+}
+
 /* ─── RESPONSIVE ─── */
 @media (max-width: 1000px) {
   .un-navbar { padding: 0 20px; }

@@ -79,11 +79,22 @@ export function AuctionCard({ a, isOwner, onEdit, onDelete }) {
     timeDisplay = "Ended";
   }
 
+  const isActive = a.status === 'Available' || a.status === 'Under Offer';
+  const inactiveClass = !isActive ? ' un-card-inactive' : '';
+
   return (
     // the second parameter in navigate basically tells the next page where the user came from which can be accessed using useLocation
-    <div className="un-card-auction" onClick={() => navigate('/property/' + (a._id || a.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
+    <div className={`un-card-auction${inactiveClass}`} onClick={() => navigate('/property/' + (a._id || a.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
         <img className="un-card-img" src={getImage(a.images || [a.image])} alt={a.title} loading="lazy" />
+
+        {a.status === 'Sold' || a.status === 'Purchased' ? (
+          <div className="un-status-badge slate">{a.status}</div>
+        ) : a.status === 'Rented' ? (
+          <div className="un-status-badge teal">Rented</div>
+        ) : a.status === 'Under Offer' ? (
+          <div className="un-status-badge amber">Under Offer</div>
+        ) : null}
         {isOwner ? (
           <div className="un-owner-actions" style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8, zIndex: 10 }}>
             <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(a._id || a.id); }} style={{ background: 'white', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -126,7 +137,7 @@ export function AuctionCard({ a, isOwner, onEdit, onDelete }) {
 }
 
 /* ─── SALE CARD ─── */
-export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDelete }) {
+export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDelete, onViewOffers }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [loved, setLoved] = useState(isInitiallySaved || false)
@@ -150,12 +161,28 @@ export function SaleCard({ p, isInitiallySaved, onUnsave, isOwner, onEdit, onDel
     }
   };
 
+  const isActive = p.status === 'Available' || p.status === 'Under Offer';
+  const inactiveClass = !isActive ? ' un-card-inactive' : '';
+
   return (
-    <div className="un-card-sale" onClick={() => navigate('/property/' + (p._id || p.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
+    <div className={`un-card-sale${inactiveClass}`} onClick={() => navigate('/property/' + (p._id || p.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
         <img className="un-card-img" src={getImage(p.images || [p.image])} alt={p.title} loading="lazy" />
+
+        {p.status === 'Sold' || p.status === 'Purchased' ? (
+          <div className="un-status-badge slate">{p.status}</div>
+        ) : p.status === 'Rented' ? (
+          <div className="un-status-badge teal">Rented</div>
+        ) : p.status === 'Under Offer' ? (
+          <div className="un-status-badge amber">Under Offer</div>
+        ) : null}
         {isOwner ? (
           <div className="un-owner-actions" style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8, zIndex: 10 }}>
+            {p.listingType === 'sell' && p.isNegotiable && onViewOffers && (
+              <button onClick={(e) => { e.stopPropagation(); onViewOffers(p._id || p.id); }} style={{ background: 'white', border: 'none', padding: '4px 8px', borderRadius: '16px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600, color: '#4f46e5' }}>
+                Offers
+              </button>
+            )}
             <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(p._id || p.id); }} style={{ background: 'white', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Pencil size={18} color="#4b5563" />
             </button>
@@ -220,10 +247,21 @@ export function RentalCard({ r, isInitiallySaved, onUnsave, isOwner, onEdit, onD
 
   const furnishClass = r.specs?.furnishingStatus === 'Furnished' ? 'un-tag-green' : r.specs?.furnishingStatus === 'Semi-Furnished' ? 'un-tag-amber' : 'un-tag-gray'
   const furnishType = r.specs?.furnishingStatus || r.furnish || 'Semi-Furnished';
+  const isActive = r.status === 'Available' || r.status === 'Under Offer';
+  const inactiveClass = !isActive ? ' un-card-inactive' : '';
+
   return (
-    <div className="un-card-rental" onClick={() => navigate('/property/' + (r._id || r.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
+    <div className={`un-card-rental${inactiveClass}`} onClick={() => navigate('/property/' + (r._id || r.id), { state: { from: location.pathname + location.search } })} style={{ cursor: 'pointer' }}>
       <div className="un-card-img-wrap">
         <img className="un-card-img" src={getImage(r.images || [r.image])} alt={r.title} loading="lazy" />
+
+        {r.status === 'Sold' || r.status === 'Purchased' ? (
+          <div className="un-status-badge slate">{r.status}</div>
+        ) : r.status === 'Rented' ? (
+          <div className="un-status-badge teal">Rented</div>
+        ) : r.status === 'Under Offer' ? (
+          <div className="un-status-badge amber">Under Offer</div>
+        ) : null}
         {isOwner ? (
           <div className="un-owner-actions" style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 8, zIndex: 10 }}>
             <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(r._id || r.id); }} style={{ background: 'white', border: 'none', padding: 6, borderRadius: '50%', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

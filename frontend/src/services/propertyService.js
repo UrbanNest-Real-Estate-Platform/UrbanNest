@@ -44,3 +44,11 @@ export const updateProperty = async (id, propertyData) => {
 export const deleteProperty = async (id) => {
     return await api.delete(`/properties/${id}`);
 };
+
+export const submitPropertyRequest = async (id, payload) => {
+    return await api.post(`/properties/${id}/request`, payload);
+};
+
+export const reviewPropertyRequest = async (requestId, status) => {
+    return await api.put(`/properties/requests/${requestId}/review`, { status });
+};

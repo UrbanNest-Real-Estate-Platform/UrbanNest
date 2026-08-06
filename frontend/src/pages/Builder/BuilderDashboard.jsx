@@ -201,12 +201,6 @@ function BuilderDashboard() {
   // Modals state
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    title: '',
-    category: 'RERA Approval',
-    project: ''
-  });
 
   // Interactive Form State for New Project Listing
   const [newProject, setNewProject] = useState({
@@ -820,7 +814,7 @@ function BuilderDashboard() {
             <div>
               <div className="builder-section-header">
                 <h3>RERA & Legal Document Vault</h3>
-                <button className="builder-btn-primary" onClick={() => setShowUploadModal(true)}>
+                <button className="builder-btn-primary" onClick={handleDocUpload}>
                   <IconUpload /> Upload Document
                 </button>
               </div>
@@ -1337,67 +1331,6 @@ function BuilderDashboard() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
-      {/* ─── 6. UPLOAD DOCUMENT MODAL ─── */}
-      {showUploadModal && (
-        <div className="builder-modal-overlay" onClick={() => setShowUploadModal(false)}>
-          <div className="builder-modal-content" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="builder-modal-header">
-              <h3>Upload Document to RERA Vault</h3>
-              <button className="builder-modal-close" onClick={() => setShowUploadModal(false)}>✕</button>
-            </div>
-
-            <form onSubmit={handleDocUpload} className="builder-modal-body">
-              <div className="builder-form-group">
-                <label>Document Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Master_Site_Plan_Phase1.pdf"
-                  value={uploadForm.title}
-                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="builder-form-group">
-                <label>Document Category</label>
-                <select
-                  value={uploadForm.category}
-                  onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
-                >
-                  <option value="RERA Approval">📜 RERA Approval Certificate</option>
-                  <option value="Site Plan">📐 Site Plan & Master Layout</option>
-                  <option value="Environmental">🌿 Environmental Clearance</option>
-                  <option value="Structural Audit">🏗️ Structural Audit Report</option>
-                  <option value="Other">📄 Other Compliance Doc</option>
-                </select>
-              </div>
-
-              <div className="builder-form-group">
-                <label>Associated Project (Optional)</label>
-                <select
-                  value={uploadForm.project}
-                  onChange={(e) => setUploadForm({ ...uploadForm, project: e.target.value })}
-                >
-                  <option value="">-- Select Project --</option>
-                  {projectsList.map((p) => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="builder-upload-zone" style={{ margin: '16px 0 20px', padding: '20px' }}>
-                <IconUpload />
-                <div style={{ fontWeight: '600', fontSize: '13px', marginTop: '6px' }}>Select PDF File from Computer</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Supported formats: PDF, DOCX (Max 15MB)</div>
-              </div>
-
-              <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                Submit Document for RERA Verification
-              </button>
-            </form>
           </div>
         </div>
       )}

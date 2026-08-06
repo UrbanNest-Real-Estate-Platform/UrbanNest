@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 const Property = require("../models/Property");
 const Builder = require("../models/Builder");
+const PropertyRequest = require("../models/PropertyRequest");
+const Tenancy = require("../models/Tenancy");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 // @desc    Search properties using query parameters with pagination
 // @route   GET /api/properties/search
@@ -233,6 +237,30 @@ const getPropertyById = async (req, res) => {
             });
         }
 
+        // Check if the current user is an active tenant
+        let isActiveTenant = false;
+        if (req.user) {
+            const activeTenancy = await Tenancy.findOne({
+                propertyId: id,
+                tenantId: req.user._id,
+                isActive: true
+            });
+            if (activeTenancy) {
+                isActiveTenant = true;
+            }
+        }
+
+        // Authorization check for off-market properties
+        if (property.status !== 'Available' && property.status !== 'Under Offer') {
+            const isOwner = req.user && property.ownerId && property.ownerId._id.toString() === req.user._id.toString();
+            if (!isOwner && !isActiveTenant) {
+                return res.status(403).json({
+                    success: false,
+                    message: "This property is no longer available"
+                });
+            }
+        }
+
         // Check for builder project reference
         let builderData = null;
         let projectData = null;
@@ -255,12 +283,14 @@ const getPropertyById = async (req, res) => {
             }
         }
 
+
         return res.status(200).json({
             success: true,
             data: {
                 ...property,
                 builder: builderData,
-                project: projectData
+                project: projectData,
+                isActiveTenant
             }
         });
 
@@ -346,10 +376,12 @@ const updateProperty = async (req, res) => {
         }
 
         const {
-            title, description, propertyType, listingType, totalPrice, 
-            securityDeposit, maintenance, isNegotiable, status, specs, 
+            title, description, propertyType, listingType, totalPrice,
+            securityDeposit, maintenance, isNegotiable, status, specs,
             address, location, images, auctionStartTime, auctionEndTime
         } = req.body;
+
+        const isPriceDrop = totalPrice && (totalPrice < property.totalPrice);
 
         property.title = title || property.title;
         property.description = description || property.description;
@@ -379,6 +411,21 @@ const updateProperty = async (req, res) => {
         }
 
         const updatedProperty = await property.save();
+
+        if (isPriceDrop) {
+            // Automatically checks whether the property id is in savedPropertyIds array.
+            const savedUsers = await User.find({ savedPropertyIds: property._id });
+            if (savedUsers.length > 0) {
+                const notifications = savedUsers.map(user => ({
+                    userId: user._id,
+                    type: "PRICE_DROP",
+                    title: "Price Drop Alert",
+                    message: `The price for "${property.title}" has dropped to ₹${totalPrice.toLocaleString()}.`,
+                    targetLink: `/property/${property._id}`
+                }));
+                await Notification.insertMany(notifications);
+            }
+        }
 
         return res.status(200).json({
             success: true,
@@ -429,6 +476,255 @@ const deleteProperty = async (req, res) => {
     }
 };
 
+// @desc    Submit a property request (tenancy or ownership transfer)
+// @route   POST /api/properties/:id/request
+// @access  Private
+const submitPropertyRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { message, startDate, endDate, isVacancyRequest } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "Invalid Property ID" });
+        }
+
+        const property = await Property.findById(id);
+        if (!property) {
+            return res.status(404).json({ success: false, message: "Property not found" });
+        }
+
+        if (property.ownerId.toString() === req.user._id.toString()) {
+            return res.status(400).json({ success: false, message: "You cannot request your own property" });
+        }
+
+        // Determine request type based on listing type and payload
+        let requestType;
+        if (isVacancyRequest) {
+            // Verify if the user is actually an active tenant
+            const activeTenancy = await Tenancy.findOne({
+                propertyId: id,
+                tenantId: req.user._id,
+                isActive: true
+            });
+            if (!activeTenancy) {
+                return res.status(403).json({ success: false, message: "Only active tenants can submit a vacancy request" });
+            }
+            requestType = 'vacancy';
+        } else if (property.listingType === 'sell') {
+            requestType = 'ownership_transfer';
+        } else if (property.listingType === 'rent') {
+            requestType = 'tenancy';
+        } else {
+            return res.status(400).json({ success: false, message: "Cannot request this type of property" });
+        }
+
+        // Anti-Spam: Check if a PENDING request already exists for this property
+        const existingPending = await PropertyRequest.findOne({ propertyId: id, status: 'PENDING' });
+        if (existingPending) {
+            return res.status(400).json({ success: false, message: "A request is already pending for this property" });
+        }
+
+        const requestData = {
+            propertyId: id,
+            requesterId: req.user._id,
+            requestType,
+            message
+        };
+
+        if (requestType === 'ownership_transfer') {
+            const Offer = require("../models/Offer");
+            const acceptedOffer = await Offer.findOne({ propertyId: id, buyerId: req.user._id, status: 'Accepted' });
+            if (acceptedOffer) {
+                requestData.offerPrice = acceptedOffer.offerPrice;
+            }
+        }
+
+        if (requestType === 'tenancy') {
+            if (!startDate || !endDate) {
+                return res.status(400).json({ success: false, message: "startDate and endDate are required for tenancy requests" });
+            }
+            requestData.startDate = startDate;
+            requestData.endDate = endDate;
+        }
+
+        const propertyRequest = await PropertyRequest.create(requestData);
+
+        let notifType = "TRANSFER_REQUEST";
+        let notifTitle = "New Ownership Transfer Request";
+        if (requestType === 'tenancy') {
+            notifType = "TENANCY_REQUEST";
+            notifTitle = "New Tenancy Request";
+        } else if (requestType === 'vacancy') {
+            notifType = "VACANCY_REQUEST";
+            notifTitle = "New Vacancy Request";
+        }
+
+        await Notification.create({
+            userId: property.ownerId,
+            type: notifType,
+            title: notifTitle,
+            message: `You have received a new ${requestType.replace('_', ' ')} request for "${property.title}".`,
+            targetLink: `/my-properties?tab=listings`
+        });
+
+        return res.status(201).json({
+            success: true,
+            data: propertyRequest,
+            message: "Request submitted successfully"
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while submitting request",
+            error: error.message
+        });
+    }
+};
+
+// @desc    Review a property request
+// @route   PUT /api/properties/requests/:requestId/review
+// @access  Private
+const reviewPropertyRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { status } = req.body;
+
+        if (!["APPROVED", "REJECTED"].includes(status)) {
+            return res.status(400).json({ success: false, message: "Invalid status. Must be APPROVED or REJECTED" });
+        }
+
+        const propertyRequest = await PropertyRequest.findById(requestId).populate('propertyId');
+        if (!propertyRequest) {
+            return res.status(404).json({ success: false, message: "Request not found" });
+        }
+
+        const property = propertyRequest.propertyId;
+        if (!property) {
+            return res.status(404).json({ success: false, message: "Associated property not found" });
+        }
+
+        if (property.ownerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: "Not authorized to review this request" });
+        }
+
+        if (propertyRequest.status !== 'PENDING') {
+            return res.status(400).json({ success: false, message: "Request has already been processed" });
+        }
+
+        propertyRequest.status = status;
+        await propertyRequest.save();
+
+        if (status === 'APPROVED') {
+            if (propertyRequest.requestType === 'ownership_transfer') {
+                // Set all associated Tenancies to inactive
+                await Tenancy.updateMany({ propertyId: property._id }, { isActive: false });
+
+                // Add to sales history
+                property.salesHistory.push({
+                    sellerId: property.ownerId,
+                    buyerId: propertyRequest.requesterId,
+                    soldPrice: propertyRequest.offerPrice || property.totalPrice,
+                    soldAt: new Date()
+                });
+
+                // Update owner and status
+                property.ownerId = propertyRequest.requesterId;
+                property.status = 'Sold';
+                await property.save();
+
+                // Reject all pending/accepted offers for this property since it's sold (except for the buyer)
+                const Offer = require("../models/Offer");
+                const otherOffers = await Offer.find({ 
+                    propertyId: property._id, 
+                    buyerId: { $ne: propertyRequest.requesterId },
+                    status: { $in: ['Pending', 'Accepted'] } 
+                });
+                if (otherOffers.length > 0) {
+                    await Offer.updateMany(
+                        { propertyId: property._id, buyerId: { $ne: propertyRequest.requesterId } },
+                        { $set: { status: 'Rejected' } }
+                    );
+                    const notifications = otherOffers.map(o => ({
+                        userId: o.buyerId,
+                        type: "OFFER_UPDATE",
+                        title: "Offer Rejected",
+                        message: `Your offer for "${property.title}" has been rejected because the property was sold to someone else.`,
+                        targetLink: `/dashboard`
+                    }));
+                    await Notification.insertMany(notifications);
+                }
+
+                // Archive the buyer's accepted offer, if it exists
+                await Offer.updateMany(
+                    { propertyId: property._id, buyerId: propertyRequest.requesterId, status: 'Accepted' },
+                    { $set: { status: 'Archived' } }
+                );
+            } else if (propertyRequest.requestType === 'tenancy') {
+                // Set all existing Tenancies to inactive
+                await Tenancy.updateMany({ propertyId: property._id }, { isActive: false });
+
+                // Create new Tenancy
+                await Tenancy.create({
+                    propertyId: property._id,
+                    tenantId: propertyRequest.requesterId,
+                    startDate: propertyRequest.startDate,
+                    endDate: propertyRequest.endDate,
+                    monthlyRent: property.totalPrice,
+                    isActive: true
+                });
+
+                // Update property status
+                property.status = 'Rented';
+                await property.save();
+            } else if (propertyRequest.requestType === 'vacancy') {
+                // Find active tenancy for requester and set inactive
+                await Tenancy.updateMany({
+                    propertyId: property._id,
+                    tenantId: propertyRequest.requesterId,
+                    isActive: true
+                }, { isActive: false });
+
+                property.status = 'Available';
+                await property.save();
+            }
+        }
+
+        let notifType = "TRANSFER_REQUEST";
+        let titlePrefix = "Ownership Transfer";
+        if (propertyRequest.requestType === 'tenancy') {
+            notifType = "TENANCY_REQUEST";
+            titlePrefix = "Tenancy Request";
+        } else if (propertyRequest.requestType === 'vacancy') {
+            notifType = "VACANCY_REQUEST";
+            titlePrefix = "Vacancy Request";
+        }
+
+        await Notification.create({
+            userId: propertyRequest.requesterId,
+            type: notifType,
+            title: `${titlePrefix} ${status === 'APPROVED' ? 'Approved' : 'Rejected'}`,
+            message: `Your ${propertyRequest.requestType.replace('_', ' ')} request for "${property.title}" has been ${status.toLowerCase()}.`,
+            targetLink: `/property/${property._id}`
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: propertyRequest,
+            message: `Request ${status.toLowerCase()} successfully`
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while reviewing request",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     searchProperties,
     getLiveAuctions,
@@ -438,5 +734,7 @@ module.exports = {
     getPropertyById,
     createProperty,
     updateProperty,
-    deleteProperty
+    deleteProperty,
+    submitPropertyRequest,
+    reviewPropertyRequest
 };

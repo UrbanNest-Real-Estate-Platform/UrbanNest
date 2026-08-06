@@ -42,6 +42,55 @@ function AppRoutes() {
                 <Route path="/login/user" element={<Login />} />
                 <Route path="/login/builder" element={<BuilderLogin />} />
 
+                <Route
+                    path="/login"
+                    element={<LoginChoice />}
+                />
+        <Route
+          path="/my-properties"
+          element={
+            <ProtectedRoute>
+              <MyProperties />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/post-property"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/edit-property/:id"
+          element={
+            <ProtectedRoute>
+              <PostProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/admin" element={<AdminLogin />} />
+
+        <Route
+            path="/admin/dashboard"
+            element={
+                <AdminProtectedRoute>
+                    <AdminDashboard />
+                </AdminProtectedRoute>
+            }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <Search />
+            </ProtectedRoute>
+          }
+        />
 
                 {/* Register */}
                 <Route path="/register" element={<RegisterChoice />} />

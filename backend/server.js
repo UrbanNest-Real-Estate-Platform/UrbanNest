@@ -10,6 +10,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const propertyRoutes = require("./routes/propertyRoutes.js");
 const userRoutes = require("./routes/userRoutes.js");
 const offerRoutes = require("./routes/offerRoutes.js");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 dotenv.config();
 connectDB();
@@ -31,9 +32,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/offers", offerRoutes);
-
-app.use('/api/admin',adminRoutes);
-
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api", (req, res) => {
     res.status(200).json({

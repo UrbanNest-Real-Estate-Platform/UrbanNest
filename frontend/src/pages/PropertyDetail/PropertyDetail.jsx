@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/axios';
 import { toast } from 'react-toastify';
+import { deleteProperty } from '../../services/propertyService';
 import './PropertyDetail.css';
 
 // Import subcomponents
@@ -12,6 +13,7 @@ import OfferModal from './components/OfferModal';
 import AuctionReminder from './components/AuctionReminder';
 import ProjectBanner from './components/ProjectBanner';
 import SalesHistoryTimeline from './components/SalesHistoryTimeline';
+import PropertyRequestModal from './components/PropertyRequestModal';
 
 // Icons
 const IconMapPin = () => (
@@ -55,7 +57,10 @@ export default function PropertyDetail() {
     const [loading, setLoading] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
     const [showOfferModal, setShowOfferModal] = useState(false);
+    const [showRequestModal, setShowRequestModal] = useState(false);
     const [existingOffer, setExistingOffer] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchPropertyAndUser = async () => {
@@ -69,6 +74,7 @@ export default function PropertyDetail() {
                 try {
                     const userRes = await api.get('/auth/me');
                     if (userRes.data.success) {
+                        setCurrentUser(userRes.data.user);
                         if (userRes.data.user.savedPropertyIds) {
                             setIsSaved(userRes.data.user.savedPropertyIds.includes(id));
                         }
@@ -140,6 +146,20 @@ export default function PropertyDetail() {
         } catch (error) {
             console.error("Failed to cancel offer", error);
             toast.error(error.response?.data?.message || "Failed to cancel offer");
+        }
+    };
+
+    const handleDeleteProperty = async () => {
+        if (window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) {
+            try {
+                const res = await deleteProperty(property._id);
+                if (res.data.success) {
+                    toast.success("Property deleted successfully");
+                    navigate("/my-properties?tab=listings");
+                }
+            } catch (error) {
+                toast.error("Failed to delete property");
+            }
         }
     };
 
@@ -258,23 +278,56 @@ export default function PropertyDetail() {
                 <aside className="pd-sidebar">
                     <div className="pd-card pd-pricing-card">
                         <div className="pd-price-row">
-                            <span className="pd-price-amount">{formatPrice(property.totalPrice)}</span>
+                            <span className="pd-price-amount">
+                                {existingOffer?.status === 'Accepted' ? formatPrice(existingOffer.offerPrice) : formatPrice(property.totalPrice)}
+                            </span>
                             {property.listingType === 'rent' && <span className="pd-price-period">/ month</span>}
                         </div>
-                        <AppreciationBadge history={property.salesHistory} currentPrice={property.totalPrice} />
+                        
+                        {existingOffer?.status === 'Accepted' && (
+                            <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+                                <span style={{ background: '#10b981', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Accepted Offer Price</span>
+                            </div>
+                        )}
+                        
+                        <AppreciationBadge history={property.salesHistory} currentPrice={existingOffer?.status === 'Accepted' ? existingOffer.offerPrice : property.totalPrice} />
 
                         {property.listingType === 'auction' ? (
                             <AuctionReminder property={property} />
-                        ) : property.listingType === 'sell' && property.isNegotiable && (
+                        ) : property.listingType === 'sell' && property.isNegotiable && property.status !== 'Sold' && (!currentUser || (property.ownerId && currentUser._id !== property.ownerId._id)) && (!existingOffer || existingOffer.status === 'Pending') && (
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowOfferModal(true)} style={{ flex: 1 }}>
-                                    {existingOffer ? 'Edit Your Offer' : 'Make an Offer'}
+                                    {existingOffer ? 'View/Edit Your Offer' : 'Make an Offer'}
                                 </button>
                                 {existingOffer && (
                                     <button className="pd-btn-primary pd-offer-btn" onClick={handleCancelOffer} style={{ flex: 1, background: '#ef4444' }}>
                                         Cancel Offer
                                     </button>
                                 )}
+                            </div>
+                        )}
+
+                        {currentUser && property.ownerId && currentUser._id !== property.ownerId._id && property.status !== 'Sold' && (property.listingType === 'sell' || property.listingType === 'rent') && (
+                            <div style={{ marginTop: '12px' }}>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={() => setShowRequestModal(true)} style={{ width: '100%', background: property.isActiveTenant ? '#ef4444' : '#10b981' }}>
+                                    {property.isActiveTenant 
+                                        ? 'Submit Vacancy Request' 
+                                        : (property.listingType === 'rent' 
+                                            ? 'Request Tenancy' 
+                                            : (existingOffer?.status === 'Accepted' ? 'Request Ownership Transfer at Accepted Price' : 'Request Ownership Transfer')
+                                          )}
+                                </button>
+                            </div>
+                        )}
+
+                        {currentUser && property.ownerId && currentUser._id === property.ownerId._id && (
+                            <div style={{ marginTop: '12px', display: 'flex', gap: '10px' }}>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={() => navigate(`/edit-property/${property._id}`)} style={{ flex: 1, background: '#4f46e5' }}>
+                                    Edit Property
+                                </button>
+                                <button className="pd-btn-primary pd-offer-btn" onClick={handleDeleteProperty} style={{ flex: 1, background: '#ef4444' }}>
+                                    Delete Property
+                                </button>
                             </div>
                         )}
 
@@ -304,6 +357,14 @@ export default function PropertyDetail() {
                     existingOffer={existingOffer}
                     onClose={() => setShowOfferModal(false)}
                     onOfferUpdated={(offer) => setExistingOffer(offer)}
+                />
+            )}
+            
+            {showRequestModal && (
+                <PropertyRequestModal
+                    property={property}
+                    isVacancy={property.isActiveTenant}
+                    onClose={() => setShowRequestModal(false)}
                 />
             )}
         </div>

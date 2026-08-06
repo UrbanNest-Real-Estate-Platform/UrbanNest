@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { IconSearch, IconBell, IconPlus } from '../Icons/Icons';
+import { notificationService } from '../../services/notificationService';
 import './DashboardNavbar.css';
 
 export default function DashboardNavbar({ scrolled = false }) {
@@ -10,6 +11,11 @@ export default function DashboardNavbar({ scrolled = false }) {
   const [userInitials, setUserInitials] = useState('U');
 
   const dropdownRef = useRef(null);
+
+  const [notifications, setNotifications] = useState([]);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notifDropdownRef = useRef(null);
 
   useEffect(() => {
     // Get user from local storage to set initials
@@ -30,10 +36,29 @@ export default function DashboardNavbar({ scrolled = false }) {
       }
     }
 
+    // Fetch notifications
+    const fetchNotifications = async () => {
+      if (localStorage.getItem('token')) {
+        try {
+          const res = await notificationService.getUserNotifications();
+          if (res && res.data) {
+            setNotifications(res.data);
+            setUnreadCount(res.data.filter(n => !n.isRead).length);
+          }
+        } catch (error) {
+          console.error("Error fetching notifications", error);
+        }
+      }
+    };
+    fetchNotifications();
+
     // Close dropdown on outside click
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setMenuOpen(false);
+      }
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target)) {
+        setNotifMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -56,6 +81,42 @@ export default function DashboardNavbar({ scrolled = false }) {
     localStorage.removeItem("user");
     navigate('/login');
   }
+
+  const handleMarkAsRead = async (e, id, targetLink) => {
+    if (e) e.stopPropagation();
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (targetLink) {
+        navigate(targetLink);
+        setNotifMenuOpen(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllAsRead = async (e) => {
+    if (e) e.stopPropagation();
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNotifClick = (e, notif) => {
+      e.stopPropagation();
+      if (!notif.isRead) {
+          handleMarkAsRead(e, notif._id, notif.targetLink);
+      } else if (notif.targetLink) {
+          navigate(notif.targetLink);
+          setNotifMenuOpen(false);
+      }
+  };
 
   return (
     <nav className={`un-navbar${scrolled ? ' scrolled' : ''}`}>
@@ -92,10 +153,57 @@ export default function DashboardNavbar({ scrolled = false }) {
           <IconPlus />
           <span>List Property</span>
         </button>
-        <button className="un-icon-btn" aria-label="Notifications">
-          <IconBell />
-          <span className="un-notif-dot" aria-label="New notifications" />
-        </button>
+        <div className="un-notif-container" ref={notifDropdownRef}>
+          <button 
+            className="un-icon-btn" 
+            aria-label="Notifications"
+            onClick={() => setNotifMenuOpen(!notifMenuOpen)}
+          >
+            <IconBell />
+            {unreadCount > 0 && <span className="un-notif-dot" aria-label="New notifications">{unreadCount}</span>}
+          </button>
+          
+          {notifMenuOpen && (
+            <div className="un-notif-dropdown">
+              <div className="un-notif-header">
+                <h3>Notifications</h3>
+                {unreadCount > 0 && (
+                  <button className="un-notif-mark-all" onClick={handleMarkAllAsRead}>
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+              <div className="un-notif-body">
+                {notifications.length === 0 ? (
+                  <div className="un-notif-empty">You're all caught up! No new notifications.</div>
+                ) : (
+                  notifications.map(notif => (
+                    <div 
+                      key={notif._id} 
+                      className={`un-notif-item ${!notif.isRead ? 'unread' : ''}`}
+                      onClick={(e) => handleNotifClick(e, notif)}
+                    >
+                      <div className="un-notif-content">
+                        <strong>{notif.title}</strong>
+                        <p>{notif.message}</p>
+                        <span className="un-notif-time">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {!notif.isRead && (
+                         <button 
+                           className="un-notif-mark-read-btn" 
+                           onClick={(e) => handleMarkAsRead(e, notif._id, null)}
+                           title="Mark as read"
+                         >
+                           <div className="un-notif-unread-indicator"></div>
+                         </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="un-avatar-container" ref={dropdownRef}>
           <div
@@ -117,6 +225,9 @@ export default function DashboardNavbar({ scrolled = false }) {
               </Link>
               <Link to="/my-properties?tab=listings" className="un-dropdown-item" onClick={() => setMenuOpen(false)}>
                 My Listings
+              </Link>
+              <Link to="/my-properties?tab=rents" className="un-dropdown-item" onClick={() => setMenuOpen(false)}>
+                My Rents
               </Link>
               <div className="un-dropdown-divider"></div>
               <button className="un-dropdown-item un-logout-btn" onClick={handleLogout}>
