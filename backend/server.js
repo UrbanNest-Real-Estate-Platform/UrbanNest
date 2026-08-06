@@ -12,6 +12,9 @@ const userRoutes = require("./routes/userRoutes.js");
 const offerRoutes = require("./routes/offerRoutes.js");
 const notificationRoutes = require("./routes/notificationRoutes");
 
+const projectRoutes = require("./routes/projectRoutes.js");
+const mlRoutes = require("./routes/mlRoutes.js");
+
 dotenv.config();
 connectDB();
 
@@ -22,8 +25,8 @@ app.use(cors({
     credentials: true //Allows cookies and authentication information to be sent.
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -34,6 +37,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/offers", offerRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/ml", mlRoutes);
 
 app.get("/api", (req, res) => {
     res.status(200).json({
