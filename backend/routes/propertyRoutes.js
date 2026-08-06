@@ -13,11 +13,14 @@ const {
     updateProperty,
     deleteProperty,
     submitPropertyRequest,
-    reviewPropertyRequest
+    reviewPropertyRequest,
+    predictPropertyPrice
 } = require("../controllers/propertyController");
 
 const protect = require("../middleware/authMiddleware");
 const { restrictBuilder } = require("../middleware/propertyMiddleware");
+
+router.post("/predict", predictPropertyPrice);
 
 // Protect all routes and restrict builder role
 router.use(protect);

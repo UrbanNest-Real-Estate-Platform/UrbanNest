@@ -13,6 +13,7 @@ const offerRoutes = require("./routes/offerRoutes.js");
 const notificationRoutes = require("./routes/notificationRoutes");
 
 const projectRoutes = require("./routes/projectRoutes.js");
+const mlRoutes = require("./routes/mlRoutes.js");
 
 dotenv.config();
 connectDB();
@@ -37,6 +38,7 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/ml", mlRoutes);
 
 app.get("/", (req, res) => {
     res.send("UrbanNest Backend Running");
