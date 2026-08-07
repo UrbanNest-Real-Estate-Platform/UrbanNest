@@ -15,6 +15,7 @@ import OfferModal from './components/OfferModal';
 import ProjectBanner from './components/ProjectBanner';
 import SalesHistoryTimeline from './components/SalesHistoryTimeline';
 import PropertyRequestModal from './components/PropertyRequestModal';
+import SimilarPropertiesGraph from './components/SimilarPropertiesGraph';
 
 // Icons
 const IconMapPin = () => (
@@ -62,6 +63,7 @@ export default function PropertyDetail() {
     const [existingOffer, setExistingOffer] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const fetchPropertyAndUser = async () => {
@@ -181,7 +183,6 @@ export default function PropertyDetail() {
         return '₹' + price.toString();
     };
 
-    const location = useLocation();
     // reads the data sent using navigate second parameter.
     const fromPath = location.state?.from || '/dashboard';
 
@@ -282,6 +283,11 @@ export default function PropertyDetail() {
                             <SalesHistoryTimeline history={property.salesHistory} />
                         </div>
                     )}
+                    
+                    <div className="pd-section">
+                        <h2>You may also like</h2>
+                        <SimilarPropertiesGraph propertyId={property._id} />
+                    </div>
                 </div>
 
                 <aside className="pd-sidebar">
