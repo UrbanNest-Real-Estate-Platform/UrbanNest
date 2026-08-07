@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import DashboardNavbar from '../../components/DashboardNavbar/DashboardNavbar';
 import { createProperty, updateProperty, getPropertyById } from '../../services/propertyService';
+import api from '../../services/axios';
 import './PostProperty.css';
 
 // Fix Leaflet's default icon issue
@@ -63,7 +64,6 @@ export default function PostProperty() {
   const [stateName, setStateName] = useState('');
 
   // Images
-  const [imageUrl, setImageUrl] = useState('');
   const [images, setImages] = useState([]);
 
   // Location / Coordinates (Default to Mumbai)
@@ -153,28 +153,61 @@ export default function PostProperty() {
     }
   };
 
-  const handleAddImage = (e) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
-    if (imageUrl.trim() && isValidHttpUrl(imageUrl)) {
-      setImages(prev => [...prev, imageUrl.trim()]);
-      setImageUrl('');
-    } else {
-      toast.error("Please enter a valid image URL");
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleFiles = async (files) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      toast.error("Please upload valid image files.");
+      return;
+    }
+
+    const formData = new FormData();
+    imageFiles.forEach(file => {
+      formData.append('images', file);
+    });
+
+    try {
+      toast.info("Uploading images...");
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3120/api/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setImages(prev => [...prev, ...data.data]);
+        toast.success("Images uploaded successfully!");
+      } else {
+        toast.error(data.message || "Upload failed on server");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload images");
     }
   };
 
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const isValidHttpUrl = (string) => {
-    let url;
-    try {
-      url = new URL(string);
-    } catch (_) {
-      return false;
-    }
-    return url.protocol === "http:" || url.protocol === "https:";
   };
 
   const handleSubmit = async (e) => {
@@ -391,10 +424,31 @@ export default function PostProperty() {
           <div className="pp-section">
             <h2 className="pp-section-title">5. Photos</h2>
             <div className="pp-field full-width">
-              <label>Add Image URLs</label>
-              <div className="pp-image-row">
-                <input type="url" className="pp-input" placeholder="https://example.com/image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-                <button type="button" className="btn-secondary" onClick={handleAddImage}>Add</button>
+              <label>Upload Images</label>
+              
+              <div 
+                className="pp-drag-drop-zone"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-upload').click()}
+              >
+                <input 
+                  id="file-upload" 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={handleFileSelect} 
+                />
+                <div className="pp-drag-drop-content">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p>Drag and drop images here, or <strong>browse files</strong></p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Supports JPG, PNG, WEBP</p>
+                </div>
               </div>
 
               {images.length > 0 && (
@@ -402,7 +456,7 @@ export default function PostProperty() {
                   {images.map((img, idx) => (
                     <div key={idx} className="pp-image-preview">
                       <img src={img} alt={`Preview ${idx + 1}`} />
-                      <button type="button" className="pp-image-remove" onClick={() => removeImage(idx)}>✕</button>
+                      <button type="button" className="pp-image-remove" onClick={(e) => { e.stopPropagation(); removeImage(idx); }}>✕</button>
                     </div>
                   ))}
                 </div>
