@@ -236,6 +236,17 @@ function BuilderDashboard() {
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDocUploadModal, setShowDocUploadModal] = useState(false);
+  const [showUpdateInquiryModal, setShowUpdateInquiryModal] = useState(false);
+  const [showAddInquiryModal, setShowAddInquiryModal] = useState(false);
+  const [inquiryUpdateForm, setInquiryUpdateForm] = useState({
+    id: '',
+    unit: '',
+    buyer: '',
+    offer: '',
+    status: 'Inquiry Received',
+    notes: '',
+    time: 'Just now'
+  });
 
   // Dynamic MongoDB State Collections
   const [projectsList, setProjectsList] = useState([]);
@@ -655,6 +666,97 @@ function BuilderDashboard() {
       setAcceptedInquiries([newAcceptedDeal, ...acceptedInquiries]);
       toast.success(`Offer accepted! Deal moved to Accepted Inquiries list.`);
     }
+  };
+
+  // Reject Inquiry Handler
+  const handleRejectInquiry = (inq) => {
+    const confirmed = window.confirm(
+      `REJECT OFFER\n\nAre you sure you want to reject this offer from ${inq.buyer}?\n\nUnit: ${inq.unit}\nOffer Price: ${inq.offer}`
+    );
+
+    if (confirmed) {
+      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inq.id));
+      toast.info(`Offer for ${inq.unit} rejected.`);
+    }
+  };
+
+  // Open Update Modal for an Inquiry
+  const handleOpenUpdateInquiry = (inq) => {
+    setInquiryUpdateForm({
+      id: inq.id,
+      unit: inq.unit,
+      buyer: inq.buyer,
+      offer: inq.offer,
+      status: inq.status || 'Inquiry Received',
+      notes: inq.notes || '',
+      time: inq.time || 'Just now'
+    });
+    setShowUpdateInquiryModal(true);
+  };
+
+  // Save Inquiry Update
+  const handleSaveInquiryUpdate = (e) => {
+    e.preventDefault();
+    if (!inquiryUpdateForm.unit || !inquiryUpdateForm.buyer || !inquiryUpdateForm.offer) {
+      return toast.error("Please fill in unit, buyer email, and offer amount.");
+    }
+
+    if (inquiryUpdateForm.status === 'Offer Accepted ✓' || inquiryUpdateForm.status === 'Accepted') {
+      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inquiryUpdateForm.id));
+      const newAcceptedDeal = {
+        id: `acc_${Date.now()}`,
+        unit: inquiryUpdateForm.unit,
+        buyer: inquiryUpdateForm.buyer,
+        offer: inquiryUpdateForm.offer,
+        acceptedAt: new Date().toISOString().split('T')[0],
+        status: 'Deal Accepted ✓'
+      };
+      setAcceptedInquiries([newAcceptedDeal, ...acceptedInquiries]);
+      toast.success(`Inquiry updated & moved to Accepted Inquiries list!`);
+    } else if (inquiryUpdateForm.status === 'Offer Rejected' || inquiryUpdateForm.status === 'Rejected') {
+      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inquiryUpdateForm.id));
+      toast.info(`Inquiry marked as Rejected.`);
+    } else {
+      setInquiriesQueue(inquiriesQueue.map((item) => {
+        if (item.id === inquiryUpdateForm.id) {
+          return {
+            ...item,
+            unit: inquiryUpdateForm.unit,
+            buyer: inquiryUpdateForm.buyer,
+            offer: inquiryUpdateForm.offer,
+            status: inquiryUpdateForm.status,
+            notes: inquiryUpdateForm.notes,
+            time: 'Updated just now'
+          };
+        }
+        return item;
+      }));
+      toast.success(`Inquiry updated successfully!`);
+    }
+    setShowUpdateInquiryModal(false);
+  };
+
+  // Add New Inquiry Handler
+  const handleSaveNewInquiry = (e) => {
+    e.preventDefault();
+    if (!inquiryUpdateForm.unit || !inquiryUpdateForm.buyer || !inquiryUpdateForm.offer) {
+      return toast.error("Please fill in property unit, buyer email, and offer price.");
+    }
+
+    const newInquiry = {
+      id: `inq_${Date.now()}`,
+      unit: inquiryUpdateForm.unit,
+      buyer: inquiryUpdateForm.buyer,
+      offer: inquiryUpdateForm.offer,
+      status: inquiryUpdateForm.status || 'Inquiry Received',
+      notes: inquiryUpdateForm.notes || '',
+      time: 'Just now'
+    };
+
+    setInquiriesQueue([newInquiry, ...inquiriesQueue]);
+    toast.success(`New inquiry added for ${newInquiry.unit}!`);
+    setShowAddInquiryModal(false);
+    setInquiryUpdateForm({ id: '', unit: '', buyer: '', offer: '', status: 'Inquiry Received', notes: '', time: 'Just now' });
   };
 
   // Ownership Handshake Transfer Request
@@ -1411,6 +1513,15 @@ function BuilderDashboard() {
             <div>
               <div className="builder-section-header">
                 <h3>Buyer Inquiries & Negotiation Queue</h3>
+                <button
+                  className="builder-btn-primary"
+                  onClick={() => {
+                    setInquiryUpdateForm({ id: '', unit: '', buyer: '', offer: '', status: 'Inquiry Received', notes: '', time: 'Just now' });
+                    setShowAddInquiryModal(true);
+                  }}
+                >
+                  <IconPlus /> Add Buyer Lead / Inquiry
+                </button>
               </div>
 
               <div className="builder-section-card" style={{ marginBottom: '28px' }}>
@@ -1424,14 +1535,14 @@ function BuilderDashboard() {
                         <th>Proposed Offer</th>
                         <th>Time Received</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {inquiriesQueue.length === 0 ? (
                         <tr>
                           <td colSpan="6" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                            No pending inquiries. All buyer offers have been accepted!
+                            No pending inquiries. All buyer offers have been processed!
                           </td>
                         </tr>
                       ) : (
@@ -1443,13 +1554,29 @@ function BuilderDashboard() {
                             <td>{inq.time}</td>
                             <td><span className="builder-status-badge review">{inq.status}</span></td>
                             <td>
-                              <button
-                                className="builder-btn-primary"
-                                style={{ padding: '5px 12px', fontSize: '12px' }}
-                                onClick={() => handleAcceptInquiry(inq)}
-                              >
-                                Accept Offer
-                              </button>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button
+                                  className="builder-btn-secondary"
+                                  style={{ padding: '5px 10px', fontSize: '12px' }}
+                                  onClick={() => handleOpenUpdateInquiry(inq)}
+                                >
+                                  ✏ Edit / Update
+                                </button>
+                                <button
+                                  className="builder-btn-primary"
+                                  style={{ padding: '5px 10px', fontSize: '12px' }}
+                                  onClick={() => handleAcceptInquiry(inq)}
+                                >
+                                  ✓ Accept
+                                </button>
+                                <button
+                                  className="builder-btn-secondary"
+                                  style={{ padding: '5px 10px', fontSize: '12px', color: 'var(--red)', borderColor: '#fca5a5' }}
+                                  onClick={() => handleRejectInquiry(inq)}
+                                >
+                                  ✕ Reject
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1946,6 +2073,146 @@ function BuilderDashboard() {
 
                 <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}>
                   💾 Upload Document to Vault
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPDATE INQUIRY MODAL */}
+      {showUpdateInquiryModal && (
+        <div className="builder-modal-overlay" onClick={() => setShowUpdateInquiryModal(false)}>
+          <div className="builder-modal-content" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="builder-modal-header">
+              <h3>Update Buyer Lead & Inquiry</h3>
+              <button className="builder-modal-close" onClick={() => setShowUpdateInquiryModal(false)}>✕</button>
+            </div>
+
+            <div className="builder-modal-body">
+              <form onSubmit={handleSaveInquiryUpdate}>
+                <div className="builder-form-group">
+                  <label>Property Unit</label>
+                  <input
+                    type="text"
+                    value={inquiryUpdateForm.unit}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, unit: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Buyer Email Address</label>
+                  <input
+                    type="email"
+                    value={inquiryUpdateForm.buyer}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, buyer: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Proposed / Counter-Offer Price (₹)</label>
+                  <input
+                    type="text"
+                    value={inquiryUpdateForm.offer}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, offer: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Inquiry Status</label>
+                  <select
+                    value={inquiryUpdateForm.status}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, status: e.target.value })}
+                  >
+                    <option value="Inquiry Received">📩 Inquiry Received (Pending Review)</option>
+                    <option value="Site Visit Scheduled">📅 Site Visit Scheduled</option>
+                    <option value="Negotiation">💬 In Active Negotiation</option>
+                    <option value="Counter-Offer Sent">🏷️ Counter-Offer Sent</option>
+                    <option value="Offer Accepted ✓">✅ Accept Offer (Move to Closed Deals)</option>
+                    <option value="Offer Rejected">❌ Reject Offer</option>
+                  </select>
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Internal Follow-up Notes & Remarks</label>
+                  <textarea
+                    rows="3"
+                    placeholder="Enter negotiation notes, buyer preferences, or next steps..."
+                    value={inquiryUpdateForm.notes}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, notes: e.target.value })}
+                  ></textarea>
+                </div>
+
+                <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}>
+                  💾 Save & Update Inquiry
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD NEW INQUIRY MODAL */}
+      {showAddInquiryModal && (
+        <div className="builder-modal-overlay" onClick={() => setShowAddInquiryModal(false)}>
+          <div className="builder-modal-content" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="builder-modal-header">
+              <h3>Add New Buyer Lead / Inquiry</h3>
+              <button className="builder-modal-close" onClick={() => setShowAddInquiryModal(false)}>✕</button>
+            </div>
+
+            <div className="builder-modal-body">
+              <form onSubmit={handleSaveNewInquiry}>
+                <div className="builder-form-group">
+                  <label>Select Property Unit</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. DLF Ultima - Unit 1204 (3BHK)"
+                    value={inquiryUpdateForm.unit}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, unit: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Buyer Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="buyer@example.com"
+                    value={inquiryUpdateForm.buyer}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, buyer: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Initial Proposed Offer Price (₹)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹2,45,00,000"
+                    value={inquiryUpdateForm.offer}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, offer: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="builder-form-group">
+                  <label>Initial Status</label>
+                  <select
+                    value={inquiryUpdateForm.status}
+                    onChange={(e) => setInquiryUpdateForm({ ...inquiryUpdateForm, status: e.target.value })}
+                  >
+                    <option value="Inquiry Received">📩 Inquiry Received</option>
+                    <option value="Site Visit Scheduled">📅 Site Visit Scheduled</option>
+                    <option value="Negotiation">💬 Negotiation</option>
+                  </select>
+                </div>
+
+                <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }}>
+                  ➕ Add Lead to Queue
                 </button>
               </form>
             </div>
