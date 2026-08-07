@@ -89,14 +89,6 @@ export default function Dashboard() {
     navigate(`/search?${params.toString()}`);
   }
 
-  const handleNavSearch = (e) => {
-    if (e.key === 'Enter' || e.type === 'click') {
-      if (navSearchQuery.trim()) {
-        navigate(`/search?locality=${encodeURIComponent(navSearchQuery.trim())}`);
-      }
-    }
-  }
-
   useEffect(() => {
     const onScroll = () => {
       const heroBottom = heroRef.current ? heroRef.current.getBoundingClientRect().bottom : 400

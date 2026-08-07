@@ -18,21 +18,16 @@ const searchProperties = async (req, res) => {
             minPrice,
             maxPrice,
             locality,
-            city,
             page = 1,
             limit = 24
         } = req.query;
 
         const query = {};
 
-        // Match city (case-insensitive)
-        if (city) {
-            query["address.city"] = { $regex: city, $options: "i" };
-        }
-
         // Match locality (case-insensitive)
         if (locality) {
             query["address.locality"] = { $regex: locality, $options: "i" };
+            query["address.city"] = { $regex: locality, $options: "i" };
         }
 
         // Match listingType ('sell', 'rent')
@@ -354,17 +349,17 @@ const updateProperty = async (req, res) => {
         property.maintenance = maintenance !== undefined ? maintenance : property.maintenance;
         property.isNegotiable = isNegotiable !== undefined ? isNegotiable : property.isNegotiable;
         property.status = status || property.status;
-        
+
         if (specs) property.specs = specs;
         if (address) property.address = address;
-        
+
         if (location && location.coordinates) {
             property.location = {
                 type: 'Point',
                 coordinates: location.coordinates
             };
         }
-        
+
         if (images) property.images = images;
 
         const updatedProperty = await property.save();
@@ -593,10 +588,10 @@ const reviewPropertyRequest = async (req, res) => {
 
                 // Reject all pending/accepted offers for this property since it's sold (except for the buyer)
                 const Offer = require("../models/Offer");
-                const otherOffers = await Offer.find({ 
-                    propertyId: property._id, 
+                const otherOffers = await Offer.find({
+                    propertyId: property._id,
                     buyerId: { $ne: propertyRequest.requesterId },
-                    status: { $in: ['Pending', 'Accepted'] } 
+                    status: { $in: ['Pending', 'Accepted'] }
                 });
                 if (otherOffers.length > 0) {
                     await Offer.updateMany(
@@ -688,7 +683,7 @@ const predictPropertyPrice = async (req, res) => {
     try {
         const payload = req.body;
         const DJANGO_ML_SERVICE_URL = process.env.DJANGO_ML_URL || 'http://127.0.0.1:8000/api/predict/';
-        
+
         const response = await fetch(DJANGO_ML_SERVICE_URL, {
             method: 'POST',
             headers: {
@@ -708,7 +703,7 @@ const predictPropertyPrice = async (req, res) => {
 
         const areaSqft = Number(req.body.superBuiltUpSqft || req.body.areaSqft || 1800);
         const locality = String(req.body.locality || 'Sector 81');
-        
+
         const localityRates = {
             'Golf Course Road': 24000,
             'DLF Phase 5': 21000,

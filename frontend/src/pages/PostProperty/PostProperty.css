@@ -178,6 +178,35 @@
   background: var(--red, #e11d48);
 }
 
+.pp-drag-drop-zone {
+  border: 2px dashed var(--border, #e2e8f0);
+  border-radius: 16px;
+  background: var(--bg-subtle, #f8fafc);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.pp-drag-drop-zone:hover, .pp-drag-drop-zone:focus-within {
+  border-color: var(--primary, #4f46e5);
+  background: var(--primary-faint, #e0e7ff);
+}
+
+.pp-drag-drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.pp-drag-drop-content p {
+  color: var(--text-sub, #334155);
+  margin: 0;
+  font-size: 15px;
+}
+
 .pp-footer {
   padding: 32px 48px;
   background: var(--bg-subtle, #f8fafc);

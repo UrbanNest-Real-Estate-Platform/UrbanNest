@@ -18,6 +18,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 
 const projectRoutes = require("./routes/projectRoutes.js");
 const mlRoutes = require("./routes/mlRoutes.js");
+const uploadRoutes = require("./routes/uploadRoutes.js");
 
 dotenv.config();
 const fs = require("fs");
@@ -47,6 +48,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/ml", mlRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.get("/api", (req, res) => {
     res.status(200).json({
