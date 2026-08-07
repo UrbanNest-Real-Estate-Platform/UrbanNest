@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import './BuilderDashboard.css';
 import {
-  fetchProjectsFromDB,
+  fetchMyProjectsFromDB,
   createProjectInDB,
   addProjectDocumentInDB
 } from '../../services/projectService';
@@ -185,13 +185,19 @@ function BuilderDashboard() {
   const printIframeRef = useRef(null);
 
   // Authenticated Builder State
-  const [builder, setBuilder] = useState(() => {
+  const [builder] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) return JSON.parse(savedUser);
     } catch {
-      return null;
+      // ignore
     }
+    return {
+      companyName: "DLF Urban Developers Ltd",
+      ownerName: "Rajiv Singh",
+      email: "contact@dlfurban.com",
+      registrationNumber: "HARERA/GGM/2026/9021",
+    };
   });
 
   // Navigation Tab State
@@ -266,6 +272,7 @@ function BuilderDashboard() {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mlInput, activeTab]);
 
   // FEATURE 1: Server-Side CSV Bulk Import Validator (Pandas)
@@ -373,10 +380,29 @@ function BuilderDashboard() {
     time: 'Just now'
   });
 
-  // Local Custom Vault Documents Store
-  const [customVaultDocs, setCustomVaultDocs] = useState([]);
-
-  // Doc Upload Modal Form State
+  // Collect documents from MongoDB project data only (no duplicate local state)
+  const getAllDocumentsFromDB = () => {
+    const docs = [];
+    projectsList.forEach((proj) => {
+      if (proj.documents && Array.isArray(proj.documents)) {
+        proj.documents.forEach((doc, idx) => {
+          const docId = doc._id || `${proj._id}_d_${idx}`;
+          if (!docs.some((d) => d.id === docId)) {
+            docs.push({
+              id: docId,
+              title: doc.title,
+              project: proj.name,
+              category: doc.category || "Site Plan",
+              status: doc.status || "Under Review",
+              date: doc.date || "2026-08-01",
+              fileUrl: doc.fileUrl || createPdfBlobUrl(doc.title, proj.name, doc.category),
+            });
+          }
+        });
+      }
+    });
+    return docs;
+  };
   const [docUploadForm, setDocUploadForm] = useState({
     title: '',
     category: 'Site Plan',
@@ -430,11 +456,15 @@ function BuilderDashboard() {
     }
     loadProjectsFromDatabase();
   }, []);
+  // Inquiries State
+  const [inquiriesQueue, setInquiriesQueue] = useState(INITIAL_INQUIRIES);
+  const [acceptedInquiries, setAcceptedInquiries] = useState(INITIAL_ACCEPTED_DEALS);
+  const [transferHistory, setTransferHistory] = useState(INITIAL_TRANSFERS);
 
   const loadProjectsFromDatabase = async () => {
     try {
       setLoadingProjects(true);
-      const res = await fetchProjectsFromDB();
+      const res = await fetchMyProjectsFromDB();
       if (res.data && res.data.data) {
         setProjectsList(res.data.data);
       }
@@ -503,6 +533,10 @@ function BuilderDashboard() {
 
     return baseUnits.filter(u => !takenUnits.some(t => t && t.toString().includes(u.toString())));
   };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadProjectsFromDatabase();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -660,22 +694,7 @@ function BuilderDashboard() {
 
       toast.success(`Project "${createdProj.name}" stored directly in MongoDB!`);
 
-      if (newProject.initialDocFileUrl) {
-        setCustomVaultDocs((prev) => [
-          {
-            id: `doc_init_${Date.now()}`,
-            title: newProject.initialDocTitle || newProject.initialDocFileName,
-            project: createdProj.name,
-            category: newProject.initialDocCategory,
-            status: 'Verified',
-            date: new Date().toISOString().split('T')[0],
-            fileUrl: newProject.initialDocFileUrl
-          },
-          ...prev
-        ]);
-      }
-
-      loadProjectsFromDatabase();
+      await loadProjectsFromDatabase();
 
       setNewProject({
         name: '',
@@ -738,7 +757,7 @@ function BuilderDashboard() {
     const docData = {
       title: docUploadForm.title.trim() || docUploadForm.fileName,
       category: docUploadForm.category,
-      status: 'Verified',
+      status: 'Under Review',
       date: new Date().toISOString().split('T')[0],
       fileUrl: fileUrlToUse
     };
@@ -746,25 +765,12 @@ function BuilderDashboard() {
     try {
       await addProjectDocumentInDB(targetProjId, docData);
 
-      setCustomVaultDocs((prev) => [
-        {
-          id: `custom_vault_${Date.now()}`,
-          title: docData.title,
-          project: targetProj.name,
-          category: docData.category,
-          status: 'Verified',
-          date: docData.date,
-          fileUrl: fileUrlToUse
-        },
-        ...prev
-      ]);
-
-      toast.success(`Document "${docData.title}" saved to Vault!`);
-      loadProjectsFromDatabase();
+      toast.success(`Document "${docData.title}" submitted for admin review!`);
+      await loadProjectsFromDatabase();
       setShowDocUploadModal(false);
       setDocUploadForm({ title: '', category: 'Site Plan', projectId: '', fileName: '', fileUrl: null });
-    } catch (error) {
-      toast.success(`Document "${docData.title}" attached to project vault!`);
+    } catch {
+      toast.error(`Failed to attach document to project vault!`);
       setShowDocUploadModal(false);
     }
   };
@@ -801,7 +807,7 @@ function BuilderDashboard() {
         try {
           printIframeRef.current.contentWindow.focus();
           printIframeRef.current.contentWindow.print();
-        } catch (err) {
+        } catch {
           window.print();
         }
       }, 500);
@@ -818,8 +824,10 @@ function BuilderDashboard() {
 
     if (confirmed) {
       setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inq.id));
+      // eslint-disable-next-line react-hooks/purity
+      const newId = `acc_${Date.now()}`;
       const newAcceptedDeal = {
-        id: `acc_${Date.now()}`,
+        id: newId,
         unit: inq.unit,
         buyer: inq.buyer,
         offer: inq.offer,
@@ -1210,6 +1218,7 @@ function BuilderDashboard() {
                         <th>Total Units</th>
                         <th>Available</th>
                         <th>Booked</th>
+
                         <th>RERA ID</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -1223,6 +1232,7 @@ function BuilderDashboard() {
                           <td>{p.totalUnits} Units</td>
                           <td><span style={{ color: 'var(--teal)', fontWeight: '600' }}>{p.availableUnits}</span></td>
                           <td>{p.bookedUnits}</td>
+
                           <td><code style={{ fontSize: '12px', background: 'var(--bg-subtle)', padding: '2px 6px', borderRadius: '4px' }}>{p.reraNo}</code></td>
                           <td><span className="builder-status-badge active">{p.status}</span></td>
                           <td>
@@ -1243,6 +1253,7 @@ function BuilderDashboard() {
 
               {/* Quick Actions & Recent Inquiries */}
               <div className="builder-grid-2">
+
                 <div className="builder-section-card">
                   <div className="builder-section-header">
                     <h3>Pending Buyer Inquiries</h3>
@@ -1478,6 +1489,7 @@ function BuilderDashboard() {
                         onChange={(e) => setNewProject({ ...newProject, priceRange: e.target.value })}
                       />
                     </div>
+
 
                     <div className="builder-form-group">
                       <label>RERA Registration Number</label>
@@ -2116,6 +2128,28 @@ function BuilderDashboard() {
                         ))}
                       </tbody>
                     </table>
+                  <h3>Unit Type Conversion Rates</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '600' }}>
+                        <span>3BHK Luxury Apartments</span>
+                        <span>82% Sold</span>
+                      </div>
+                      <div className="builder-progress-bar">
+                        <div className="builder-progress-fill" style={{ width: '82%' }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '600' }}>
+                        <span>4BHK Duplex Units</span>
+                        <span>68% Sold</span>
+                      </div>
+                      <div className="builder-progress-bar">
+                        <div className="builder-progress-fill" style={{ width: '68%' }}></div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -2774,87 +2808,91 @@ function BuilderDashboard() {
                   <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>{selectedProject.bookedUnits}</div>
                 </div>
               </div>
-
-              {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Specs</h4>
-                  <div className="builder-table-wrapper">
-                    <table className="builder-table">
-                      <thead>
-                        <tr>
-                          <th>Unit ID</th>
-                          <th>Unit Type</th>
-                          <th>Listing Mode</th>
-                          <th>Carpet Area</th>
-                          <th>Asking Price</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedProject.unitsConfig.map((u, idx) => (
-                          <tr key={idx}>
-                            <td><code>{u.unitId}</code></td>
-                            <td><strong>{u.type}</strong></td>
-                            <td>
-                              <span className={`builder-listing-mode-tag ${u.mode === 'Rental' ? 'rental' : 'sale'}`}>
-                                {u.mode}
-                              </span>
-                            </td>
-                            <td>{u.area}</td>
-                            <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
-                            <td>
-                              <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : 'sold'}`}>
-                                {u.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {selectedProject.amenities && (
-                <div style={{ marginBottom: '28px' }}>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedProject.amenities.map((item, idx) => (
-                      <span className="builder-amenity-chip" key={idx}>
-                        ✓ {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedProject.documents && selectedProject.documents.length > 0 && (
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {selectedProject.documents.map((doc, idx) => (
-                      <div
-                        key={idx}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
-                        onClick={() => { setSelectedProject(null); handleOpenDocument(doc); }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
-                          <IconFilePdf />
-                          <span>{doc.title}</span>
-                        </div>
-                        <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
-                          Open Document
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+
+            {selectedProject.unitsConfig && selectedProject.unitsConfig.length > 0 && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Inventory Unit Specs</h4>
+                <div className="builder-table-wrapper">
+                  <table className="builder-table">
+                    <thead>
+                      <tr>
+                        <th>Unit ID</th>
+                        <th>Unit Type</th>
+                        <th>Listing Mode</th>
+                        <th>Carpet Area</th>
+                        <th>Asking Price</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedProject.unitsConfig.map((u, idx) => (
+                        <tr key={idx}>
+                          <td><code>{u.unitId}</code></td>
+                          <td><strong>{u.type}</strong></td>
+                          <td>
+                            <span className={`builder-listing-mode-tag ${u.mode === 'Rental' ? 'rental' : 'sale'}`}>
+                              {u.mode}
+                            </span>
+                          </td>
+                          <td>{u.area}</td>
+                          <td><strong style={{ color: 'var(--primary)' }}>{u.price}</strong></td>
+                          <td>
+                            <span className={`builder-status-badge ${u.status === 'Available' ? 'active' : 'sold'}`}>
+                              {u.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {selectedProject.amenities && (
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Verified Site Amenities</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {selectedProject.amenities.map((item, idx) => (
+                    <span className="builder-amenity-chip" key={idx}>
+                      ✓ {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedProject.documents && selectedProject.documents.length > 0 && (
+              <div>
+                <h4 style={{ fontSize: '15px', fontWeight: '700', marginBottom: '12px' }}>Attached RERA & Site Documents</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedProject.documents.map((doc, idx) => (
+                    <div
+                      key={idx}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                      onClick={() => { setSelectedProject(null); handleOpenDocument(doc); }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: '600', fontSize: '13.5px' }}>
+                        <IconFilePdf />
+                        <span>{doc.title}</span>
+                      </div>
+                      <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                        Open Document
+                      </button>
+                      <button className="builder-btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }}>
+                        Preview PDF
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 

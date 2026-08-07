@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import DashboardNavbar from '../../components/DashboardNavbar/DashboardNavbar';
-import { SaleCard, RentalCard, AuctionCard } from '../../components/PropertyCards/PropertyCards';
+import { SaleCard, RentalCard } from '../../components/PropertyCards/PropertyCards';
 import { getSavedProperties, getMyListings, getMyRents, getPendingRequests } from '../../services/userService';
 import { deleteProperty, reviewPropertyRequest } from '../../services/propertyService';
 import OffersManagementModal from './components/OffersManagementModal';
@@ -160,9 +160,7 @@ export default function MyProperties() {
             ) : (
               <div className="properties-grid">
                 {savedProperties.map(p => (
-                  p.listingType === 'auction' ? (
-                    <AuctionCard key={p._id} a={p} />
-                  ) : p.listingType === 'rent' ? (
+                  p.listingType === 'rent' ? (
                     <RentalCard key={p._id} r={p} isInitiallySaved={true} onUnsave={handleUnsave} />
                   ) : (
                     <SaleCard key={p._id} p={p} isInitiallySaved={true} onUnsave={handleUnsave} />
@@ -220,15 +218,13 @@ export default function MyProperties() {
             {myListings.length === 0 ? (
               <div className="empty-state">
                 <h3>No Listings Yet</h3>
-                <p>You haven't posted any properties for sale, rent, or auction.</p>
+                <p>You haven't posted any properties for sale or rent.</p>
                 <Link to="/post-property" className="btn-primary">Create Your First Listing</Link>
               </div>
             ) : (
               <div className="properties-grid">
                 {myListings.map(p => (
-                  p.listingType === 'auction' ? (
-                    <AuctionCard key={p._id} a={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} />
-                  ) : p.listingType === 'rent' ? (
+                  p.listingType === 'rent' ? (
                     <RentalCard key={p._id} r={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} />
                   ) : (
                     <SaleCard key={p._id} p={p} isOwner={true} onDelete={handleDeleteProperty} onEdit={(id) => navigate(`/edit-property/${id}`)} onViewOffers={(id) => setSelectedPropertyForOffers(id)} />

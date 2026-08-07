@@ -21,6 +21,19 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.joblib")
 
+import networkx as nx
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:password123@127.0.0.0:27017/urbannest?authSource=admin")
+try:
+    mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=2000)
+    mongo_db = mongo_client.get_default_database()
+except Exception as e:
+    print(f"Failed to connect to MongoDB: {e}")
+    mongo_db = None
+
 # Gurgaon Locality Price Per Sq.Ft. Master Matrix
 GURGAON_LOCALITY_RATES = {
     "Golf Course Road": 26500,
@@ -485,3 +498,93 @@ class GeneratePDFReportView(APIView):
 
         except Exception as e:
             return Response({"success": False, "error": f"PDF Report Generation error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class PropertyRecommendationGraphView(APIView):
+    def get(self, request, property_id):
+        try:
+            if mongo_db is None:
+                return Response({"error": "Database connection not available"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+            properties_collection = mongo_db["properties"]
+            properties = list(properties_collection.find({}))
+            
+            if not properties:
+                return Response({"nodes": [], "links": []}, status=status.HTTP_200_OK)
+
+            G = nx.Graph()
+            
+            # Add nodes
+            for prop in properties:
+                prop_id = str(prop["_id"])
+                G.add_node(
+                    prop_id, 
+                    title=prop.get("title", "Unknown"), 
+                    price=prop.get("totalPrice", 0),
+                    locality=prop.get("address", {}).get("locality", ""),
+                    bedrooms=prop.get("specs", {}).get("bedrooms", 0),
+                    image=prop.get("images", [""])[0] if prop.get("images") else ""
+                )
+
+            # Add edges
+            for i in range(len(properties)):
+                for j in range(i + 1, len(properties)):
+                    p1 = properties[i]
+                    p2 = properties[j]
+                    
+                    weight = 0
+                    
+                    # Locality match
+                    loc1 = p1.get("address", {}).get("locality", "")
+                    loc2 = p2.get("address", {}).get("locality", "")
+                    if loc1 and loc1 == loc2:
+                        weight += 5
+                    
+                    # Price band match (+/- 10%)
+                    price1 = p1.get("totalPrice", 0)
+                    price2 = p2.get("totalPrice", 0)
+                    if price1 and price2:
+                        diff = abs(price1 - price2) / max(price1, price2)
+                        if diff <= 0.1:
+                            weight += 3
+                        elif diff <= 0.2:
+                            weight += 1
+                            
+                    # BHK match
+                    bhk1 = p1.get("specs", {}).get("bedrooms", 0)
+                    bhk2 = p2.get("specs", {}).get("bedrooms", 0)
+                    if bhk1 and bhk1 == bhk2:
+                        weight += 2
+
+                    if weight >= 3:
+                        G.add_edge(str(p1["_id"]), str(p2["_id"]), weight=weight)
+            
+            if property_id not in G:
+                return Response({"error": "Property not found in graph"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Find top neighbors
+            neighbors = G[property_id]
+            sorted_neighbors = sorted(neighbors.items(), key=lambda x: x[1]['weight'], reverse=True)[:5]
+            
+            nodes = [{"id": property_id, **G.nodes[property_id], "isSource": True}]
+            links = []
+            
+            for neighbor_id, edge_data in sorted_neighbors:
+                nodes.append({"id": neighbor_id, **G.nodes[neighbor_id], "isSource": False})
+                links.append({
+                    "source": property_id,
+                    "target": neighbor_id,
+                    "weight": edge_data['weight']
+                })
+
+            return Response({
+                "nodes": nodes,
+                "links": links
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

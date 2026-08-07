@@ -18,29 +18,21 @@ const searchProperties = async (req, res) => {
             minPrice,
             maxPrice,
             locality,
-            city,
             page = 1,
             limit = 24
         } = req.query;
 
         const query = {};
 
-        // Match city (case-insensitive)
-        if (city) {
-            query["address.city"] = { $regex: city, $options: "i" };
-        }
-
         // Match locality (case-insensitive)
         if (locality) {
             query["address.locality"] = { $regex: locality, $options: "i" };
+            query["address.city"] = { $regex: locality, $options: "i" };
         }
 
-        // Match listingType ('sell', 'rent', 'auction')
+        // Match listingType ('sell', 'rent')
         if (listing_type) {
             query.listingType = listing_type;
-            if (listing_type === 'auction') {
-                query.auctionEndTime = { $gt: new Date() };
-            }
         }
 
         // Match BHK / bedrooms in specs
@@ -92,33 +84,6 @@ const searchProperties = async (req, res) => {
     }
 };
 
-// @desc    Get live auctions ending soon (Limit: 20)
-// @route   GET /api/properties/auctions
-// @access  Private
-const getLiveAuctions = async (req, res) => {
-    try {
-        const auctions = await Property.find({
-            listingType: "auction",
-            status: "Available",
-            auctionEndTime: { $gt: new Date() }
-        })
-            .sort({ createdAt: -1 })
-            .limit(24);
-
-        return res.status(200).json({
-            success: true,
-            count: auctions.length,
-            data: auctions
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Server error fetching live auctions",
-            error: error.message
-        });
-    }
-};
 
 // @desc    Get featured properties for sale (Limit: 20)
 // @route   GET /api/properties/featured-sale
@@ -311,7 +276,7 @@ const createProperty = async (req, res) => {
         const {
             title, description, propertyType, listingType, totalPrice,
             securityDeposit, maintenance, isNegotiable, status, specs,
-            address, location, images, auctionStartTime, auctionEndTime
+            address, location, images
         } = req.body;
 
         const propertyData = {
@@ -333,14 +298,6 @@ const createProperty = async (req, res) => {
             },
             images: images || [],
         };
-
-        if (listingType === 'auction') {
-            if (!auctionStartTime || !auctionEndTime) {
-                return res.status(400).json({ success: false, message: "Auction properties require start and end times." });
-            }
-            propertyData.auctionStartTime = auctionStartTime;
-            propertyData.auctionEndTime = auctionEndTime;
-        }
 
         const property = await Property.create(propertyData);
 
@@ -378,7 +335,7 @@ const updateProperty = async (req, res) => {
         const {
             title, description, propertyType, listingType, totalPrice,
             securityDeposit, maintenance, isNegotiable, status, specs,
-            address, location, images, auctionStartTime, auctionEndTime
+            address, location, images
         } = req.body;
 
         const isPriceDrop = totalPrice && (totalPrice < property.totalPrice);
@@ -404,11 +361,6 @@ const updateProperty = async (req, res) => {
         }
 
         if (images) property.images = images;
-
-        if (property.listingType === 'auction') {
-            if (auctionStartTime) property.auctionStartTime = auctionStartTime;
-            if (auctionEndTime) property.auctionEndTime = auctionEndTime;
-        }
 
         const updatedProperty = await property.save();
 
@@ -636,10 +588,10 @@ const reviewPropertyRequest = async (req, res) => {
 
                 // Reject all pending/accepted offers for this property since it's sold (except for the buyer)
                 const Offer = require("../models/Offer");
-                const otherOffers = await Offer.find({ 
-                    propertyId: property._id, 
+                const otherOffers = await Offer.find({
+                    propertyId: property._id,
                     buyerId: { $ne: propertyRequest.requesterId },
-                    status: { $in: ['Pending', 'Accepted'] } 
+                    status: { $in: ['Pending', 'Accepted'] }
                 });
                 if (otherOffers.length > 0) {
                     await Offer.updateMany(
@@ -671,7 +623,7 @@ const reviewPropertyRequest = async (req, res) => {
                     tenantId: propertyRequest.requesterId,
                     startDate: propertyRequest.startDate,
                     endDate: propertyRequest.endDate,
-                    monthlyRent: property.totalPrice,
+                    monthlyRent: property.totalPrice + property.maintenance,
                     isActive: true
                 });
 
@@ -731,7 +683,7 @@ const predictPropertyPrice = async (req, res) => {
     try {
         const payload = req.body;
         const DJANGO_ML_SERVICE_URL = process.env.DJANGO_ML_URL || 'http://127.0.0.1:8000/api/predict/';
-        
+
         const response = await fetch(DJANGO_ML_SERVICE_URL, {
             method: 'POST',
             headers: {
@@ -751,7 +703,7 @@ const predictPropertyPrice = async (req, res) => {
 
         const areaSqft = Number(req.body.superBuiltUpSqft || req.body.areaSqft || 1800);
         const locality = String(req.body.locality || 'Sector 81');
-        
+
         const localityRates = {
             'Golf Course Road': 24000,
             'DLF Phase 5': 21000,
@@ -796,7 +748,6 @@ const predictPropertyPrice = async (req, res) => {
 
 module.exports = {
     searchProperties,
-    getLiveAuctions,
     getFeaturedSaleProperties,
     getRentalProperties,
     getRecentlyViewed,

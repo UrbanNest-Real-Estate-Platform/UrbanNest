@@ -22,10 +22,13 @@ const documentSchema = new mongoose.Schema({
   category: String,
   status: {
     type: String,
-    default: "Verified",
+    default: "Under Review",
   },
   date: String,
-  fileUrl: String,
+  fileUrl: {
+    type: String,
+    required: true,
+  },
 });
 
 const projectSchema = new mongoose.Schema(

@@ -1,3 +1,7 @@
+const dns = require("dns");
+
+dns.setDefaultResultOrder("ipv4first");
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -14,15 +18,20 @@ const notificationRoutes = require("./routes/notificationRoutes");
 
 const projectRoutes = require("./routes/projectRoutes.js");
 const mlRoutes = require("./routes/mlRoutes.js");
+const uploadRoutes = require("./routes/uploadRoutes.js");
 
 dotenv.config();
+const fs = require("fs");
+console.log("Current directory:", process.cwd());
+console.log("Does .env exist?", fs.existsSync(".env"));
+
 connectDB();
 
 const app = express();
 
 app.use(cors({
     origin: "http://localhost:5173",
-    credentials: true
+    credentials: true //Allows cookies and authentication information to be sent.
 }));
 
 app.use(express.json({ limit: "50mb" }));
@@ -39,9 +48,13 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/ml", mlRoutes);
+app.use("/api/upload", uploadRoutes);
 
-app.get("/", (req, res) => {
-    res.send("UrbanNest Backend Running");
+app.get("/api", (req, res) => {
+    res.status(200).json({
+        success:true,
+        message : "UrbanNest API is Running"
+    })
 });
 
 const PORT = process.env.PORT || 3120;

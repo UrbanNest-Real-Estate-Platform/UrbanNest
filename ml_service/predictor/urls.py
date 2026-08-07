@@ -7,6 +7,7 @@ from .views import (
     WhatIfCurveView,
     GeneratePDFReportView
 )
+from .views import PredictPriceView, HealthCheckView, PropertyRecommendationGraphView
 
 urlpatterns = [
     path('health/', HealthCheckView.as_view(), name='health-check'),
@@ -15,4 +16,5 @@ urlpatterns = [
     path('builder-analytics/', BuilderAnalyticsView.as_view(), name='builder-analytics'),
     path('what-if-curve/', WhatIfCurveView.as_view(), name='what-if-curve'),
     path('generate-pdf-report/', GeneratePDFReportView.as_view(), name='generate-pdf-report'),
+    path('recommendations/<str:property_id>/', PropertyRecommendationGraphView.as_view(), name='graph-recommendations'),
 ]

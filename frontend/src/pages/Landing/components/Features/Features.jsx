@@ -9,9 +9,9 @@ const features = [
   },
   {
     icon: "⚡",
-    title: "Live Auctions",
+    title: "Instant Offers",
     description:
-      "Bid in real-time with WebSocket-powered updates, anti-sniping logic and instant winner notifications.",
+      "Make an offer directly on properties and negotiate with sellers in real-time.",
   },
   {
     icon: "🏢",

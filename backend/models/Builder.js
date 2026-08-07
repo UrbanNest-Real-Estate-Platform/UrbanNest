@@ -82,7 +82,39 @@ const builderSchema = new mongoose.Schema(
     isVerified:{
         type:Boolean,
         default:false
-    }
+    },
+    documents: [
+      {
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        category: {
+          type: String,
+          enum: ["Site Plan", "RERA Approval", "Environmental", "Structural Audit", "Other"],
+          default: "RERA Approval",
+        },
+        project: {
+          type: String,
+          trim: true,
+        },
+        fileUrl: {
+          type: String,
+          trim: true,
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["Under Review", "Verified", "Rejected"],
+          default: "Under Review",
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ]
   },
   {
     timestamps: true,

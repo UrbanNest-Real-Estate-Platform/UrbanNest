@@ -14,7 +14,7 @@ const reviews = [
     city: "Mumbai",
     image: "https://i.pravatar.cc/150?img=15",
     review:
-      "The live auction feature is fantastic. Everything was transparent and I found a great investment property.",
+      "The property matching feature is fantastic. Everything was transparent and I found a great investment property.",
     rating: 5,
   },
   {

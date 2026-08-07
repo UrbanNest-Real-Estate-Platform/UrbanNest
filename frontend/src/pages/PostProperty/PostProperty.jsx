@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import DashboardNavbar from '../../components/DashboardNavbar/DashboardNavbar';
 import { createProperty, updateProperty, getPropertyById } from '../../services/propertyService';
+import api from '../../services/axios';
 import './PostProperty.css';
 
 // Fix Leaflet's default icon issue
@@ -49,9 +50,7 @@ export default function PostProperty() {
   const [maintenance, setMaintenance] = useState('');
   const [isNegotiable, setIsNegotiable] = useState(false);
 
-  // Auction specific
-  const [auctionStartTime, setAuctionStartTime] = useState('');
-  const [auctionEndTime, setAuctionEndTime] = useState('');
+
 
   // Specs
   const [areaSqft, setAreaSqft] = useState('');
@@ -65,7 +64,6 @@ export default function PostProperty() {
   const [stateName, setStateName] = useState('');
 
   // Images
-  const [imageUrl, setImageUrl] = useState('');
   const [images, setImages] = useState([]);
 
   // Location / Coordinates (Default to Mumbai)
@@ -80,7 +78,7 @@ export default function PostProperty() {
     if (isEditMode && !userHasEditedAddress.current) return;
 
     const delayDebounceFn = setTimeout(async () => {
-      if (locality.trim().length > 3 || city.trim().length > 3) {
+      if (locality.trim().length > 2 || city.trim().length > 2) {
         try {
           const query = `${locality}, ${city}`;
           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
@@ -117,13 +115,7 @@ export default function PostProperty() {
             setSecurityDeposit(p.securityDeposit || '');
             setMaintenance(p.maintenance || '');
             setIsNegotiable(p.isNegotiable || false);
-            
-            if (p.listingType === 'auction') {
-              // Convert date to datetime-local format (YYYY-MM-DDTHH:mm)
-              if (p.auctionStartTime) setAuctionStartTime(new Date(p.auctionStartTime).toISOString().slice(0, 16));
-              if (p.auctionEndTime) setAuctionEndTime(new Date(p.auctionEndTime).toISOString().slice(0, 16));
-            }
-            
+
             setAreaSqft(p.specs?.areaSqft || '');
             setBedrooms(p.specs?.bedrooms || '');
             setBathrooms(p.specs?.bathrooms || '');
@@ -150,6 +142,9 @@ export default function PostProperty() {
       };
       fetchProperty();
     }
+    else {
+      setCity(JSON.parse(localStorage.getItem('user'))?.cityOfResidence || '');
+    }
   }, [id, isEditMode]);
 
 
@@ -161,28 +156,61 @@ export default function PostProperty() {
     }
   };
 
-  const handleAddImage = (e) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
-    if (imageUrl.trim() && isValidHttpUrl(imageUrl)) {
-      setImages(prev => [...prev, imageUrl.trim()]);
-      setImageUrl('');
-    } else {
-      toast.error("Please enter a valid image URL");
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleFiles = async (files) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      toast.error("Please upload valid image files.");
+      return;
+    }
+
+    const formData = new FormData();
+    imageFiles.forEach(file => {
+      formData.append('images', file);
+    });
+
+    try {
+      toast.info("Uploading images...");
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3120/api/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setImages(prev => [...prev, ...data.data]);
+        toast.success("Images uploaded successfully!");
+      } else {
+        toast.error(data.message || "Upload failed on server");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload images");
     }
   };
 
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const isValidHttpUrl = (string) => {
-    let url;
-    try {
-      url = new URL(string);
-    } catch (_) {
-      return false;
-    }
-    return url.protocol === "http:" || url.protocol === "https:";
   };
 
   const handleSubmit = async (e) => {
@@ -218,10 +246,7 @@ export default function PostProperty() {
         images,
       };
 
-      if (listingType === 'auction') {
-        propertyData.auctionStartTime = auctionStartTime;
-        propertyData.auctionEndTime = auctionEndTime;
-      }
+
 
       let res;
       if (isEditMode) {
@@ -283,7 +308,6 @@ export default function PostProperty() {
                 <select className="pp-select" value={listingType} onChange={e => setListingType(e.target.value)}>
                   <option value="sell">For Sale</option>
                   <option value="rent">For Rent</option>
-                  <option value="auction">Auction</option>
                 </select>
               </div>
               {isEditMode && (
@@ -305,7 +329,7 @@ export default function PostProperty() {
             <h2 className="pp-section-title">2. Pricing</h2>
             <div className="pp-grid">
               <div className="pp-field">
-                <label>{listingType === 'rent' ? 'Monthly Rent (₹) *' : listingType === 'auction' ? 'Starting Bid (₹) *' : 'Total Price (₹) *'}</label>
+                <label>{listingType === 'rent' ? 'Monthly Rent (₹) *' : 'Total Price (₹) *'}</label>
                 <input required type="number" min="0" className="pp-input" placeholder="e.g. 15000000" value={totalPrice} onChange={e => setTotalPrice(e.target.value)} />
               </div>
 
@@ -328,18 +352,7 @@ export default function PostProperty() {
                 </div>
               )}
 
-              {listingType === 'auction' && (
-                <>
-                  <div className="pp-field">
-                    <label>Auction Start Time *</label>
-                    <input required={listingType === 'auction'} type="datetime-local" className="pp-input" value={auctionStartTime} onChange={e => setAuctionStartTime(e.target.value)} />
-                  </div>
-                  <div className="pp-field">
-                    <label>Auction End Time *</label>
-                    <input required={listingType === 'auction'} type="datetime-local" className="pp-input" value={auctionEndTime} onChange={e => setAuctionEndTime(e.target.value)} />
-                  </div>
-                </>
-              )}
+
             </div>
           </div>
 
@@ -414,10 +427,31 @@ export default function PostProperty() {
           <div className="pp-section">
             <h2 className="pp-section-title">5. Photos</h2>
             <div className="pp-field full-width">
-              <label>Add Image URLs</label>
-              <div className="pp-image-row">
-                <input type="url" className="pp-input" placeholder="https://example.com/image.jpg" value={imageUrl} onChange={e => setImageUrl(e.target.value)} />
-                <button type="button" className="btn-secondary" onClick={handleAddImage}>Add</button>
+              <label>Upload Images</label>
+              
+              <div 
+                className="pp-drag-drop-zone"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-upload').click()}
+              >
+                <input 
+                  id="file-upload" 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={handleFileSelect} 
+                />
+                <div className="pp-drag-drop-content">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <p>Drag and drop images here, or <strong>browse files</strong></p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Supports JPG, PNG, WEBP</p>
+                </div>
               </div>
 
               {images.length > 0 && (
@@ -425,7 +459,7 @@ export default function PostProperty() {
                   {images.map((img, idx) => (
                     <div key={idx} className="pp-image-preview">
                       <img src={img} alt={`Preview ${idx + 1}`} />
-                      <button type="button" className="pp-image-remove" onClick={() => removeImage(idx)}>✕</button>
+                      <button type="button" className="pp-image-remove" onClick={(e) => { e.stopPropagation(); removeImage(idx); }}>✕</button>
                     </div>
                   ))}
                 </div>
