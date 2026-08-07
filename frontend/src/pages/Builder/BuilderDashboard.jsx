@@ -7,7 +7,13 @@ import {
   createProjectInDB,
   addProjectDocumentInDB
 } from '../../services/projectService';
-import { predictPropertyPrice } from '../../services/mlService';
+import {
+  predictPropertyPrice,
+  validateCSVWithPandas,
+  fetchPandasBuilderAnalytics,
+  fetchWhatIfPricingCurve,
+  generateSeabornPDFReport
+} from '../../services/mlService';
 
 /* ─── HELPER: GENERATE REAL VALID PDF BLOB FOR SAMPLE DOCUMENTS ─── */
 const createPdfBlobUrl = (title, project, category = 'RERA Compliance') => {
@@ -223,14 +229,133 @@ function BuilderDashboard() {
     }
   };
 
+  // Dynamic MongoDB State Collections
+  const [projectsList, setProjectsList] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  // Inquiries State
+  const [inquiriesQueue, setInquiriesQueue] = useState(INITIAL_INQUIRIES);
+  const [acceptedInquiries, setAcceptedInquiries] = useState(INITIAL_ACCEPTED_DEALS);
+  const [rejectedInquiries, setRejectedInquiries] = useState([
+    {
+      id: 'rej_101',
+      unit: 'DLF Ultima - Unit 804 (2BHK)',
+      buyer: 'arjun.kapoor@gmail.com',
+      offer: '₹1,45,00,000',
+      rejectedAt: '2026-08-04',
+      status: 'Offer Rejected ✕',
+      reason: 'Offer below reserve price threshold'
+    }
+  ]);
+  const [transferHistory, setTransferHistory] = useState(INITIAL_TRANSFERS);
+
+  // FEATURE STATES: Pandas Analytics, CSV Validator, What-If Curve, Seaborn PDF
+  const [csvValidationResult, setCsvValidationResult] = useState(null);
+  const [validatingCsv, setValidatingCsv] = useState(false);
+  const [pandasAnalytics, setPandasAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [whatIfCurveData, setWhatIfCurveData] = useState([]);
+  const [loadingWhatIf, setLoadingWhatIf] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
   useEffect(() => {
     if (activeTab === 'ml-predictor') {
       const timer = setTimeout(() => {
         handleRunPrediction();
+        handleLoadWhatIfCurve();
       }, 300);
       return () => clearTimeout(timer);
     }
   }, [mlInput, activeTab]);
+
+  // FEATURE 1: Server-Side CSV Bulk Import Validator (Pandas)
+  const handleValidateCsvContent = async (csvText) => {
+    if (!csvText) return;
+    setValidatingCsv(true);
+    try {
+      const res = await validateCSVWithPandas(csvText);
+      setCsvValidationResult(res);
+      if (res && res.valid) {
+        toast.success(`Pandas CSV Check Passed: ${res.validRowsCount} units parsed! Total Value: ${res.metrics?.totalInventoryValue}`);
+      } else if (res && res.errors) {
+        toast.error(`CSV Error: ${res.errors[0]}`);
+      }
+    } catch (err) {
+      console.error("CSV validation error:", err);
+    } finally {
+      setValidatingCsv(false);
+    }
+  };
+
+  // FEATURE 2: Builder Sales Analytics API (Pandas)
+  const loadPandasAnalyticsData = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await fetchPandasBuilderAnalytics({
+        offers: (inquiriesQueue || []).map(i => ({ unit: i.unit, bhk: 3, offerPrice: parseInt((i.offer || '').replace(/[^0-9]/g, '') || 20000000), status: i.status })),
+        projects: projectsList || []
+      });
+      if (res && res.analytics) {
+        setPandasAnalytics(res.analytics);
+      }
+    } catch (err) {
+      console.error("Pandas analytics error:", err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'sales-analytics') {
+      loadPandasAnalyticsData();
+    }
+  }, [activeTab, inquiriesQueue]);
+
+  // FEATURE 3: What-If Pricing Sensitivity Curve Tool
+  const handleLoadWhatIfCurve = async () => {
+    setLoadingWhatIf(true);
+    try {
+      const res = await fetchWhatIfPricingCurve(mlInput);
+      if (res && res.curvePoints) {
+        setWhatIfCurveData(res.curvePoints);
+      }
+    } catch (err) {
+      console.error("What-If curve fetch error:", err);
+    } finally {
+      setLoadingWhatIf(false);
+    }
+  };
+
+  // FEATURE 4: Downloadable Monthly Performance PDF Report (Seaborn + ReportLab)
+  const handleGenerateSeabornReport = async () => {
+    setGeneratingPdf(true);
+    toast.info("Generating Monthly Seaborn Performance PDF Report...");
+    try {
+      const res = await generateSeabornPDFReport({
+        builderName: builder?.companyName || "DLF Urban Developers Ltd",
+        reportMonth: "August 2026"
+      });
+      if (res && res.fileUrl) {
+        const newDoc = {
+          id: `doc_pdf_${Date.now()}`,
+          title: res.reportTitle || "Monthly Performance Report — August 2026",
+          project: "DLF Ultima & Portfolio",
+          category: "Analytics & RERA",
+          date: new Date().toISOString().split('T')[0],
+          status: "Verified",
+          fileUrl: res.fileUrl
+        };
+        setSelectedDoc(newDoc);
+        toast.success("Seaborn PDF Report generated and ready in viewer!");
+      } else {
+        toast.error("Failed to generate PDF report.");
+      }
+    } catch (err) {
+      toast.error("Error connecting to Django PDF service.");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   // Modal View States
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -247,10 +372,6 @@ function BuilderDashboard() {
     notes: '',
     time: 'Just now'
   });
-
-  // Dynamic MongoDB State Collections
-  const [projectsList, setProjectsList] = useState([]);
-  const [loadingProjects, setLoadingProjects] = useState(true);
 
   // Local Custom Vault Documents Store
   const [customVaultDocs, setCustomVaultDocs] = useState([]);
@@ -288,15 +409,15 @@ function BuilderDashboard() {
 
   // Transfer Form State
   const [transferForm, setTransferForm] = useState({
-    unitName: '',
+    projectName: '',
+    unitNumber: '',
+    propertyType: '3 BHK Apartment',
+    buyerName: '',
     buyerEmail: '',
-    finalPrice: ''
+    finalPrice: '',
+    registrationId: '',
+    transferDate: new Date().toISOString().split('T')[0]
   });
-
-  // Inquiries State
-  const [inquiriesQueue, setInquiriesQueue] = useState(INITIAL_INQUIRIES);
-  const [acceptedInquiries, setAcceptedInquiries] = useState(INITIAL_ACCEPTED_DEALS);
-  const [transferHistory, setTransferHistory] = useState(INITIAL_TRANSFERS);
 
   useEffect(() => {
     if (!builder) {
@@ -324,6 +445,8 @@ function BuilderDashboard() {
     }
   };
 
+  const [deletedDocIds, setDeletedDocIds] = useState([]);
+
   // Extract all documents dynamically from MongoDB project data + local custom uploads with Blob URLs
   const getAllDocumentsFromDB = () => {
     const docs = [...customVaultDocs];
@@ -345,7 +468,40 @@ function BuilderDashboard() {
         });
       }
     });
-    return docs;
+    return docs.filter(d => !deletedDocIds.includes(d.id));
+  };
+
+  const handleDeleteDocument = (doc, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (e && e.preventDefault) e.preventDefault();
+    const confirmed = window.confirm(`Are you sure you want to delete "${doc.title}" from the Document Vault?`);
+    if (confirmed) {
+      setDeletedDocIds((prev) => [...prev, doc.id]);
+      setCustomVaultDocs((prev) => prev.filter((d) => d.id !== doc.id));
+      if (selectedDoc && selectedDoc.id === doc.id) {
+        setSelectedDoc(null);
+      }
+      toast.success(`Document "${doc.title}" deleted from Vault!`);
+    }
+  };
+
+  // Filter unsold units for selected project in transfer workflow
+  const getAvailableUnitsForProject = (projName) => {
+    if (!projName) return [];
+    const proj = projectsList.find(p => p.name === projName);
+    let baseUnits = [];
+    if (proj && proj.unitsConfig && proj.unitsConfig.length > 0) {
+      baseUnits = proj.unitsConfig.map(u => u.unitId || u.unitName || u.name);
+    } else {
+      baseUnits = ['Unit 101', 'Unit 102', 'Unit 103', 'Unit 104', 'Tower A - 1204', 'Tower B - 1501', 'Villa 05', 'Villa 09'];
+    }
+
+    const takenUnits = [
+      ...acceptedInquiries.map(a => a.unit),
+      ...transferHistory.map(t => t.unitNumber || t.unit)
+    ];
+
+    return baseUnits.filter(u => !takenUnits.some(t => t && t.toString().includes(u.toString())));
   };
 
   const handleLogout = () => {
@@ -397,32 +553,39 @@ function BuilderDashboard() {
     }
   };
 
-  // CSV Upload & Parse
-  const handleCSVFileSelect = (e) => {
+  const handleCsvFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const fileSizeFormatted = (file.size / 1024).toFixed(1) + ' KB';
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const fileSizeFormatted = file.size < 1024 * 1024 
+      ? `${(file.size / 1024).toFixed(1)} KB` 
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const csvText = evt.target.result;
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) {
+        toast.error("CSV file appears empty or missing headers.");
+        return;
+      }
+
+      handleValidateCsvContent(csvText);
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       const units = [];
-      lines.forEach((line, index) => {
-        if (index === 0 && line.toLowerCase().includes('unit')) return;
-        const parts = line.split(',');
-        if (parts.length >= 2) {
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim());
+        if (cols.length >= 2) {
           units.push({
-            unitId: parts[0] ? parts[0].trim() : `u_${index}`,
-            type: parts[1] ? parts[1].trim() : '3BHK Unit',
-            mode: parts[2] && parts[2].toLowerCase().includes('rent') ? 'Rental' : 'Direct Sale',
-            area: parts[3] ? parts[3].trim() : '1,800 sqft',
-            price: parts[4] ? parts[4].trim() : '₹1.8 Cr',
+            unitId: cols[0] || `U-${i}`,
+            type: cols[1] || '3BHK',
+            area: cols[2] || '1800 sqft',
+            price: cols[3] || '₹1.80 Cr',
             status: 'Available'
           });
         }
-      });
+      }
 
       setNewProject({
         ...newProject,
@@ -669,14 +832,28 @@ function BuilderDashboard() {
   };
 
   // Reject Inquiry Handler
-  const handleRejectInquiry = (inq) => {
+  const handleRejectInquiry = (inq, e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
+
     const confirmed = window.confirm(
       `REJECT OFFER\n\nAre you sure you want to reject this offer from ${inq.buyer}?\n\nUnit: ${inq.unit}\nOffer Price: ${inq.offer}`
     );
 
     if (confirmed) {
-      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inq.id));
-      toast.info(`Offer for ${inq.unit} rejected.`);
+      setInquiriesQueue((prev) => prev.filter((item) => item.id !== inq.id));
+      const newRejectedItem = {
+        id: `rej_${Date.now()}`,
+        unit: inq.unit,
+        buyer: inq.buyer,
+        offer: inq.offer,
+        rejectedAt: new Date().toISOString().split('T')[0],
+        status: 'Offer Rejected ✕',
+        reason: 'Offer declined by builder'
+      };
+      setRejectedInquiries((prev) => [newRejectedItem, ...prev]);
+      setActiveTab('lead-queue');
+      toast.info(`Offer for ${inq.unit} rejected & moved to Rejected Inquiries table.`);
     }
   };
 
@@ -702,7 +879,7 @@ function BuilderDashboard() {
     }
 
     if (inquiryUpdateForm.status === 'Offer Accepted ✓' || inquiryUpdateForm.status === 'Accepted') {
-      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inquiryUpdateForm.id));
+      setInquiriesQueue((prev) => prev.filter((item) => item.id !== inquiryUpdateForm.id));
       const newAcceptedDeal = {
         id: `acc_${Date.now()}`,
         unit: inquiryUpdateForm.unit,
@@ -711,13 +888,25 @@ function BuilderDashboard() {
         acceptedAt: new Date().toISOString().split('T')[0],
         status: 'Deal Accepted ✓'
       };
-      setAcceptedInquiries([newAcceptedDeal, ...acceptedInquiries]);
+      setAcceptedInquiries((prev) => [newAcceptedDeal, ...prev]);
+      setActiveTab('lead-queue');
       toast.success(`Inquiry updated & moved to Accepted Inquiries list!`);
     } else if (inquiryUpdateForm.status === 'Offer Rejected' || inquiryUpdateForm.status === 'Rejected') {
-      setInquiriesQueue(inquiriesQueue.filter((item) => item.id !== inquiryUpdateForm.id));
-      toast.info(`Inquiry marked as Rejected.`);
+      setInquiriesQueue((prev) => prev.filter((item) => item.id !== inquiryUpdateForm.id));
+      const newRejectedItem = {
+        id: `rej_${Date.now()}`,
+        unit: inquiryUpdateForm.unit,
+        buyer: inquiryUpdateForm.buyer,
+        offer: inquiryUpdateForm.offer,
+        rejectedAt: new Date().toISOString().split('T')[0],
+        status: 'Offer Rejected ✕',
+        reason: inquiryUpdateForm.notes || 'Offer declined by builder'
+      };
+      setRejectedInquiries((prev) => [newRejectedItem, ...prev]);
+      setActiveTab('lead-queue');
+      toast.info(`Inquiry marked as Rejected & moved to Rejected Inquiries table.`);
     } else {
-      setInquiriesQueue(inquiriesQueue.map((item) => {
+      setInquiriesQueue((prev) => prev.map((item) => {
         if (item.id === inquiryUpdateForm.id) {
           return {
             ...item,
@@ -731,6 +920,7 @@ function BuilderDashboard() {
         }
         return item;
       }));
+      setActiveTab('lead-queue');
       toast.success(`Inquiry updated successfully!`);
     }
     setShowUpdateInquiryModal(false);
@@ -762,22 +952,38 @@ function BuilderDashboard() {
   // Ownership Handshake Transfer Request
   const handleInitiateTransfer = (e) => {
     e.preventDefault();
-    if (!transferForm.unitName || !transferForm.buyerEmail || !transferForm.finalPrice) {
-      return toast.error("Please fill in unit, buyer email, and agreed price.");
+    if (!transferForm.projectName || !transferForm.unitNumber || !transferForm.buyerEmail || !transferForm.finalPrice) {
+      return toast.error("Please fill in project name, unit number, buyer email, and agreed price.");
     }
+
+    const fullUnitName = `${transferForm.projectName} - Unit ${transferForm.unitNumber}`;
 
     const newTransfer = {
       id: `t_${Date.now()}`,
-      unit: transferForm.unitName,
+      projectName: transferForm.projectName,
+      unitNumber: transferForm.unitNumber,
+      unit: fullUnitName,
+      propertyType: transferForm.propertyType || '3 BHK Apartment',
+      buyerName: transferForm.buyerName || 'Registered Buyer',
       buyerEmail: transferForm.buyerEmail.trim(),
       finalPrice: transferForm.finalPrice.trim(),
-      date: new Date().toISOString().split('T')[0],
+      registrationId: transferForm.registrationId || `REG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: transferForm.transferDate || new Date().toISOString().split('T')[0],
       status: 'Handshake Pending'
     };
 
     setTransferHistory([newTransfer, ...transferHistory]);
-    setTransferForm({ unitName: '', buyerEmail: '', finalPrice: '' });
-    toast.success(`Ownership transfer handshake request sent to ${newTransfer.buyerEmail}!`);
+    setTransferForm({
+      projectName: '',
+      unitNumber: '',
+      propertyType: '3 BHK Apartment',
+      buyerName: '',
+      buyerEmail: '',
+      finalPrice: '',
+      registrationId: '',
+      transferDate: new Date().toISOString().split('T')[0]
+    });
+    toast.success(`Ownership transfer handshake request initiated for ${fullUnitName} to ${newTransfer.buyerEmail}!`);
   };
 
   const docVault = getAllDocumentsFromDB();
@@ -1441,6 +1647,17 @@ function BuilderDashboard() {
                       ℹ️ Select any CSV file to auto-parse unit inventory before hitting save.
                     </div>
                   )}
+
+                  {csvValidationResult && (
+                    <div style={{ marginTop: '16px', padding: '14px', background: csvValidationResult.valid ? '#ecfdf5' : '#fef2f2', borderRadius: '8px', border: csvValidationResult.valid ? '1px solid #a7f3d0' : '1px solid #fecaca' }}>
+                      <div style={{ fontWeight: '700', color: csvValidationResult.valid ? '#166534' : '#991b1b', fontSize: '13.5px' }}>
+                        🐼 Django Pandas Validation: {csvValidationResult.valid ? 'Passed ✓' : 'Errors Detected ✕'}
+                      </div>
+                      <div style={{ fontSize: '12.5px', marginTop: '6px', color: csvValidationResult.valid ? '#15803d' : '#b91c1c' }}>
+                        Valid Rows: <strong>{csvValidationResult.validRowsCount} / {csvValidationResult.rowsParsed}</strong> • Inventory Value: <strong>{csvValidationResult.metrics?.totalInventoryValue}</strong> • Rate: <strong>{csvValidationResult.metrics?.avgRatePerSqft}</strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1451,9 +1668,19 @@ function BuilderDashboard() {
             <div>
               <div className="builder-section-header">
                 <h3>RERA & Legal Document Vault</h3>
-                <button className="builder-btn-primary" onClick={() => setShowDocUploadModal(true)}>
-                  <IconUpload /> Upload Document File
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="builder-btn-primary"
+                    style={{ background: '#7c3aed' }}
+                    onClick={handleGenerateSeabornReport}
+                    disabled={generatingPdf}
+                  >
+                    {generatingPdf ? '⏳ Generating Seaborn PDF...' : '📊 Generate Seaborn PDF Report'}
+                  </button>
+                  <button className="builder-btn-primary" onClick={() => setShowDocUploadModal(true)}>
+                    <IconUpload /> Upload Document File
+                  </button>
+                </div>
               </div>
 
               <div className="builder-section-card">
@@ -1491,13 +1718,22 @@ function BuilderDashboard() {
                             </span>
                           </td>
                           <td>
-                            <button
-                              className="builder-btn-secondary"
-                              style={{ padding: '4px 12px', fontSize: '12px' }}
-                              onClick={(e) => { e.stopPropagation(); handleOpenDocument(doc); }}
-                            >
-                              <IconEye /> Open PDF
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                className="builder-btn-secondary"
+                                style={{ padding: '4px 12px', fontSize: '12px' }}
+                                onClick={(e) => { e.stopPropagation(); handleOpenDocument(doc); }}
+                              >
+                                <IconEye /> Open PDF
+                              </button>
+                              <button
+                                className="builder-btn-secondary"
+                                style={{ padding: '4px 10px', fontSize: '12px', color: 'var(--red)', borderColor: '#fca5a5' }}
+                                onClick={(e) => handleDeleteDocument(doc, e)}
+                              >
+                                🗑 Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1586,7 +1822,8 @@ function BuilderDashboard() {
                 </div>
               </div>
 
-              <div className="builder-section-card">
+              {/* ACCEPTED DEALS TABLE */}
+              <div className="builder-section-card" style={{ marginBottom: '28px' }}>
                 <h4 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: '700', color: 'var(--green)' }}>
                   ✓ Accepted Inquiries & Closed Deals ({acceptedInquiries.length})
                 </h4>
@@ -1615,80 +1852,189 @@ function BuilderDashboard() {
                   </table>
                 </div>
               </div>
+
+              {/* REJECTED INQUIRIES & ARCHIVED OFFERS TABLE */}
+              <div className="builder-section-card">
+                <h4 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: '700', color: 'var(--red)' }}>
+                  ❌ Rejected Inquiries & Archived Offers ({rejectedInquiries.length})
+                </h4>
+                <div className="builder-table-wrapper">
+                  <table className="builder-table">
+                    <thead>
+                      <tr>
+                        <th>Property Unit</th>
+                        <th>Buyer Email</th>
+                        <th>Rejected Offer Price</th>
+                        <th>Rejection Date</th>
+                        <th>Status</th>
+                        <th>Notes / Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rejectedInquiries.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                            No rejected inquiries.
+                          </td>
+                        </tr>
+                      ) : (
+                        rejectedInquiries.map((rej) => (
+                          <tr key={rej.id} style={{ background: '#fef2f2' }}>
+                            <td><strong>{rej.unit}</strong></td>
+                            <td><code>{rej.buyer}</code></td>
+                            <td><strong style={{ color: 'var(--red)' }}>{rej.offer}</strong></td>
+                            <td>{rej.rejectedAt || rej.date}</td>
+                            <td><span className="builder-status-badge pending" style={{ background: '#fee2e2', color: '#991b1b' }}>{rej.status}</span></td>
+                            <td style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{rej.reason || 'Offer declined by builder'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
           {/* TAB 5: MANUAL OWNERSHIP TRANSFER WORKFLOW */}
           {activeTab === 'transfer-workflow' && (
             <div>
-              <div className="builder-grid-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* 1. SELECTION FORM (TOP) */}
                 <div className="builder-section-card">
                   <div className="builder-section-header">
                     <h3>Initiate Ownership Transfer (Handshake Model)</h3>
                   </div>
 
                   <form onSubmit={handleInitiateTransfer}>
-                    <div className="builder-form-group">
-                      <label>Select Unit for Transfer</label>
-                      <select
-                        value={transferForm.unitName}
-                        onChange={(e) => setTransferForm({ ...transferForm, unitName: e.target.value })}
-                        required
-                      >
-                        <option value="">-- Choose Booked / Sold Unit --</option>
-                        {projectsList.map((p) => (
-                          <option key={p._id || p.id} value={`${p.name} - Unit 101`}>
-                            {p.name} - Unit 101
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="builder-form-group">
+                        <label>Select Project / Development</label>
+                        <select
+                          value={transferForm.projectName}
+                          onChange={(e) => setTransferForm({ ...transferForm, projectName: e.target.value, unitNumber: '' })}
+                          required
+                        >
+                          <option value="">-- Select Project / Development --</option>
+                          {projectsList.map((p) => (
+                            <option key={p._id || p.id} value={p.name}>
+                              {p.name} ({p.location})
+                            </option>
+                          ))}
+                          <option value="DLF Ultima Phase 2">DLF Ultima Phase 2</option>
+                          <option value="M3M Golfestate Prime">M3M Golfestate Prime</option>
+                        </select>
+                      </div>
+
+                      <div className="builder-form-group">
+                        <label>Select Unit (Unsold Inventory Left)</label>
+                        <select
+                          value={transferForm.unitNumber}
+                          onChange={(e) => setTransferForm({ ...transferForm, unitNumber: e.target.value })}
+                          required
+                          disabled={!transferForm.projectName}
+                        >
+                          <option value="">
+                            {transferForm.projectName
+                              ? `-- Choose Unsold Unit (${getAvailableUnitsForProject(transferForm.projectName).length} Units Left) --`
+                              : '-- Select Project First --'}
                           </option>
-                        ))}
+                          {transferForm.projectName && getAvailableUnitsForProject(transferForm.projectName).map((u) => (
+                            <option key={u} value={u}>
+                              {u} (Available to Sell ✓)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="builder-form-group">
+                      <label>Property Type & BHK Configuration</label>
+                      <select
+                        value={transferForm.propertyType}
+                        onChange={(e) => setTransferForm({ ...transferForm, propertyType: e.target.value })}
+                      >
+                        <option value="3 BHK Luxury Apartment">3 BHK Luxury Apartment</option>
+                        <option value="4 BHK Duplex Penthouse">4 BHK Duplex Penthouse</option>
+                        <option value="Executive Villa">Executive Villa</option>
+                        <option value="2 BHK Suite">2 BHK Suite</option>
+                        <option value="Commercial Office Space">Commercial Office Space</option>
                       </select>
                     </div>
 
-                    <div className="builder-form-group">
-                      <label>Registered Buyer Email Address</label>
-                      <input
-                        type="email"
-                        placeholder="buyer@example.com"
-                        value={transferForm.buyerEmail}
-                        onChange={(e) => setTransferForm({ ...transferForm, buyerEmail: e.target.value })}
-                        required
-                      />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="builder-form-group">
+                        <label>Buyer Full Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Ananya Sharma"
+                          value={transferForm.buyerName}
+                          onChange={(e) => setTransferForm({ ...transferForm, buyerName: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="builder-form-group">
+                        <label>Buyer Email Address</label>
+                        <input
+                          type="email"
+                          placeholder="buyer@example.com"
+                          value={transferForm.buyerEmail}
+                          onChange={(e) => setTransferForm({ ...transferForm, buyerEmail: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
 
-                    <div className="builder-form-group">
-                      <label>Agreed Final Transaction Price (₹)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. ₹2,95,00,000"
-                        value={transferForm.finalPrice}
-                        onChange={(e) => setTransferForm({ ...transferForm, finalPrice: e.target.value })}
-                        required
-                      />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="builder-form-group">
+                        <label>Agreed Final Transaction Price (₹)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. ₹2,95,00,000"
+                          value={transferForm.finalPrice}
+                          onChange={(e) => setTransferForm({ ...transferForm, finalPrice: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div className="builder-form-group">
+                        <label>Title Deed / Registration ID</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. REG-2026-HARERA-9021"
+                          value={transferForm.registrationId}
+                          onChange={(e) => setTransferForm({ ...transferForm, registrationId: e.target.value })}
+                        />
+                      </div>
                     </div>
 
-                    <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                      Send Handshake Transfer Request
+                    <button type="submit" className="builder-btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}>
+                      🤝 Initiate Digital Ownership Handshake
                     </button>
                   </form>
                 </div>
 
+                {/* 2. SALES HISTORY & HANDSHAKE LOG (BELOW THE SELECTION FORM) */}
                 <div className="builder-section-card">
                   <div className="builder-section-header">
-                    <h3>Sales History & Handshake Log</h3>
+                    <h3>Sales History & Title Handshake Log</h3>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {transferHistory.map((t) => (
                       <div key={t.id} style={{ padding: '14px', background: 'var(--bg-subtle)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '14px' }}>
-                          <span>{t.unit}</span>
+                          <span>{t.unit || `${t.projectName} - Unit ${t.unitNumber}`}</span>
                           <span style={{ color: 'var(--primary)' }}>{t.finalPrice}</span>
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-sub)', marginTop: '4px' }}>
-                          Buyer Email: <code>{t.buyerEmail}</code>
+                        <div style={{ fontSize: '12.5px', color: 'var(--text-main)', marginTop: '6px' }}>
+                          👤 Buyer: <strong>{t.buyerName || 'Buyer'}</strong> (<code>{t.buyerEmail}</code>)
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '2px' }}>
+                          🏷️ Config: {t.propertyType || '3BHK Apartment'} • Deed: <code>{t.registrationId || 'REG-2026-9021'}</code>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Date: {t.date}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Date: {t.date || t.transferDate}</span>
                           <span className={`builder-status-badge ${t.status === 'Transfer Completed' ? 'active' : 'review'}`}>
                             {t.status}
                           </span>
@@ -1701,36 +2047,75 @@ function BuilderDashboard() {
             </div>
           )}
 
-          {/* TAB 6: SALES ANALYTICS */}
+          {/* TAB 6: SALES ANALYTICS (PANDAS BACKEND) */}
           {activeTab === 'sales-analytics' && (
             <div>
               <div className="builder-section-header">
-                <h3>Sales Analytics & Demand Velocity</h3>
+                <div>
+                  <h3>Sales Analytics & Demand Velocity (Pandas Engine)</h3>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-sub)' }}>
+                    ⚡ Powered by Django Pandas Analytics Engine
+                  </div>
+                </div>
+                <button
+                  className="builder-btn-primary"
+                  style={{ background: '#7c3aed' }}
+                  onClick={handleGenerateSeabornReport}
+                  disabled={generatingPdf}
+                >
+                  {generatingPdf ? '⏳ Generating Seaborn PDF...' : '📊 Generate Monthly Performance PDF'}
+                </button>
               </div>
+
+              {pandasAnalytics && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                  <div className="builder-kpi-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '10px' }}>
+                    <div className="builder-kpi-title" style={{ fontSize: '12px', textTransform: 'uppercase', color: '#166534', fontWeight: '700' }}>Conversion Rate</div>
+                    <div className="builder-kpi-value" style={{ fontSize: '24px', fontWeight: '800', color: '#16a34a', margin: '4px 0' }}>{pandasAnalytics.conversionRate}</div>
+                    <div className="builder-kpi-sub" style={{ fontSize: '11.5px', color: '#15803d' }}>Offers → Closed Deals</div>
+                  </div>
+                  <div className="builder-kpi-card" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '16px', borderRadius: '10px' }}>
+                    <div className="builder-kpi-title" style={{ fontSize: '12px', textTransform: 'uppercase', color: '#1e40af', fontWeight: '700' }}>Closed Sales Revenue</div>
+                    <div className="builder-kpi-value" style={{ fontSize: '24px', fontWeight: '800', color: '#2563eb', margin: '4px 0' }}>{pandasAnalytics.totalClosedRevenue}</div>
+                    <div className="builder-kpi-sub" style={{ fontSize: '11.5px', color: '#1d4ed8' }}>Aggregated via Pandas</div>
+                  </div>
+                  <div className="builder-kpi-card" style={{ background: '#faf5ff', border: '1px solid #e9d5ff', padding: '16px', borderRadius: '10px' }}>
+                    <div className="builder-kpi-title" style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b21a8', fontWeight: '700' }}>Average Deal Value</div>
+                    <div className="builder-kpi-value" style={{ fontSize: '24px', fontWeight: '800', color: '#9333ea', margin: '4px 0' }}>{pandasAnalytics.avgDealPrice}</div>
+                    <div className="builder-kpi-sub" style={{ fontSize: '11.5px', color: '#7e22ce' }}>Mean Offer Settlement</div>
+                  </div>
+                  <div className="builder-kpi-card" style={{ background: '#fff7ed', border: '1px solid #fed7aa', padding: '16px', borderRadius: '10px' }}>
+                    <div className="builder-kpi-title" style={{ fontSize: '12px', textTransform: 'uppercase', color: '#9a3412', fontWeight: '700' }}>Sales Velocity</div>
+                    <div className="builder-kpi-value" style={{ fontSize: '24px', fontWeight: '800', color: '#ea580c', margin: '4px 0' }}>{pandasAnalytics.salesVelocity}</div>
+                    <div className="builder-kpi-sub" style={{ fontSize: '11.5px', color: '#c2410c' }}>Units Booked / Month</div>
+                  </div>
+                </div>
+              )}
 
               <div className="builder-grid-2">
                 <div className="builder-section-card">
-                  <h3>Unit Type Conversion Rates</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '600' }}>
-                        <span>3BHK Luxury Apartments</span>
-                        <span>82% Sold</span>
-                      </div>
-                      <div className="builder-progress-bar">
-                        <div className="builder-progress-fill" style={{ width: '82%' }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px', fontWeight: '600' }}>
-                        <span>4BHK Duplex Units</span>
-                        <span>68% Sold</span>
-                      </div>
-                      <div className="builder-progress-bar">
-                        <div className="builder-progress-fill" style={{ width: '68%' }}></div>
-                      </div>
-                    </div>
+                  <h3>🐼 BHK Revenue Split Breakdown (Pandas Groupby)</h3>
+                  <div style={{ marginTop: '16px' }}>
+                    <table className="builder-table">
+                      <thead>
+                        <tr>
+                          <th>BHK Config</th>
+                          <th>Offers</th>
+                          <th>Avg Offer</th>
+                          <th>Closed Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pandasAnalytics?.bhkBreakdown?.map((bhkRow, idx) => (
+                          <tr key={idx}>
+                            <td><strong>{bhkRow.bhk}</strong></td>
+                            <td>{bhkRow.totalOffers}</td>
+                            <td>{bhkRow.avgOffer}</td>
+                            <td><strong style={{ color: 'var(--green)' }}>{bhkRow.revenue}</strong></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -1738,16 +2123,16 @@ function BuilderDashboard() {
                   <h3>Micro-Market Price Trend (Per Sq.Ft.)</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
-                      <span>Gurgaon Sector 81</span>
-                      <strong>₹12,400 / sqft <span style={{ color: 'var(--green)' }}>↑ +8.2%</span></strong>
+                      <span>Golf Course Road</span>
+                      <strong>₹26,500 / sqft <span style={{ color: 'var(--green)' }}>↑ +12.4%</span></strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
-                      <span>Noida Sector 43</span>
-                      <strong>₹14,100 / sqft <span style={{ color: 'var(--green)' }}>↑ +6.5%</span></strong>
+                      <span>DLF Phase 5</span>
+                      <strong>₹22,000 / sqft <span style={{ color: 'var(--green)' }}>↑ +9.8%</span></strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '8px' }}>
-                      <span>Mumbai Borivali East</span>
-                      <strong>₹21,800 / sqft <span style={{ color: 'var(--green)' }}>↑ +11.4%</span></strong>
+                      <span>Dwarka Expressway</span>
+                      <strong>₹9,500 / sqft <span style={{ color: 'var(--green)' }}>↑ +14.2%</span></strong>
                     </div>
                   </div>
                 </div>
@@ -1942,6 +2327,66 @@ function BuilderDashboard() {
                           Status: <strong>{mlResult.microMarketDemand}</strong> • Model algorithm: Scikit-Learn Random Forest Regressor trained on 10,000 Gurgaon property transactions.
                         </div>
                       </div>
+
+                      {/* FEATURE 3: WHAT-IF PRICING SENSITIVITY CURVE WIDGET */}
+                      {whatIfCurveData && whatIfCurveData.length > 0 && (
+                        <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                              🎛️ What-If Area Sensitivity Curve ({mlInput.superBuiltUpSqft} sqft)
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>
+                              Live Area Slider
+                            </div>
+                          </div>
+
+                          {/* Live Area Drag Slider */}
+                          <div style={{ marginBottom: '16px' }}>
+                            <input
+                              type="range"
+                              min={800}
+                              max={5000}
+                              step={50}
+                              value={mlInput.superBuiltUpSqft}
+                              onChange={(e) => setMlInput({ ...mlInput, superBuiltUpSqft: Number(e.target.value) })}
+                              style={{ width: '100%', cursor: 'pointer', accentColor: '#2563eb' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                              <span>800 sqft</span>
+                              <span><strong>Selected: {mlInput.superBuiltUpSqft} sqft</strong></span>
+                              <span>5,000 sqft</span>
+                            </div>
+                          </div>
+
+                          {/* Curve Data Points Grid Bar */}
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: '80px', paddingTop: '10px' }}>
+                            {whatIfCurveData.map((pt, idx) => {
+                              const isSelected = Math.abs(pt.areaSqft - mlInput.superBuiltUpSqft) < 250;
+                              const maxVal = Math.max(...whatIfCurveData.map(p => p.estimatedPrice));
+                              const heightPct = Math.max(15, Math.round((pt.estimatedPrice / maxVal) * 100));
+
+                              return (
+                                <div
+                                  key={idx}
+                                  title={`${pt.areaSqft} sqft: ${pt.formattedPrice}`}
+                                  style={{
+                                    flex: 1,
+                                    background: isSelected ? '#2563eb' : '#cbd5e1',
+                                    height: `${heightPct}%`,
+                                    borderRadius: '3px 3px 0 0',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={() => setMlInput({ ...mlInput, superBuiltUpSqft: pt.areaSqft })}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: '#64748b', textAlign: 'center', marginTop: '8px' }}>
+                            Click any bar step to dynamically set unit size and update fair market valuation.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -2254,6 +2699,13 @@ function BuilderDashboard() {
                     onClick={() => handlePrintPdf(selectedDoc)}
                   >
                     🖨 Print
+                  </button>
+                  <button
+                    className="builder-btn-secondary"
+                    style={{ background: '#ef4444', color: 'white', border: 'none', padding: '5px 14px', fontSize: '12.5px', fontWeight: '600' }}
+                    onClick={(e) => handleDeleteDocument(selectedDoc, e)}
+                  >
+                    🗑 Delete
                   </button>
                 </div>
               </div>
