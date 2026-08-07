@@ -30,4 +30,12 @@ export const rejectBuilder = (id) => {
 
 export const deleteBuilder = (id) => {
     return api.delete(`/admin/builders/${id}`);
-};
+};
+
+export const deleteAdminProperty = (id) => {
+    return api.delete(`/admin/properties/${id}`);
+};
+
+export const deleteAdminProject = (id) => {
+    return api.delete(`/admin/projects/${id}`);
+};

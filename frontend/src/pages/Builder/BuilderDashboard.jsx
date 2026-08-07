@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import './BuilderDashboard.css';
 import {
-  fetchProjectsFromDB,
+  fetchMyProjectsFromDB,
   createProjectInDB,
   addProjectDocumentInDB
 } from '../../services/projectService';
@@ -248,10 +248,29 @@ function BuilderDashboard() {
   const [projectsList, setProjectsList] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
 
-  // Local Custom Vault Documents Store
-  const [customVaultDocs, setCustomVaultDocs] = useState([]);
-
-  // Doc Upload Modal Form State
+  // Collect documents from MongoDB project data only (no duplicate local state)
+  const getAllDocumentsFromDB = () => {
+    const docs = [];
+    projectsList.forEach((proj) => {
+      if (proj.documents && Array.isArray(proj.documents)) {
+        proj.documents.forEach((doc, idx) => {
+          const docId = doc._id || `${proj._id}_d_${idx}`;
+          if (!docs.some((d) => d.id === docId)) {
+            docs.push({
+              id: docId,
+              title: doc.title,
+              project: proj.name,
+              category: doc.category || "Site Plan",
+              status: doc.status || "Under Review",
+              date: doc.date || "2026-08-01",
+              fileUrl: doc.fileUrl || createPdfBlobUrl(doc.title, proj.name, doc.category),
+            });
+          }
+        });
+      }
+    });
+    return docs;
+  };
   const [docUploadForm, setDocUploadForm] = useState({
     title: '',
     category: 'Site Plan',
@@ -297,7 +316,7 @@ function BuilderDashboard() {
   const loadProjectsFromDatabase = async () => {
     try {
       setLoadingProjects(true);
-      const res = await fetchProjectsFromDB();
+      const res = await fetchMyProjectsFromDB();
       if (res.data && res.data.data) {
         setProjectsList(res.data.data);
       }
@@ -312,30 +331,6 @@ function BuilderDashboard() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProjectsFromDatabase();
   }, []);
-
-  // Extract all documents dynamically from MongoDB project data + local custom uploads with Blob URLs
-  const getAllDocumentsFromDB = () => {
-    const docs = [...customVaultDocs];
-    projectsList.forEach((proj) => {
-      if (proj.documents && Array.isArray(proj.documents)) {
-        proj.documents.forEach((doc, idx) => {
-          const docId = doc._id || `${proj._id}_d_${idx}`;
-          if (!docs.some(d => d.id === docId)) {
-            docs.push({
-              id: docId,
-              title: doc.title,
-              project: proj.name,
-              category: doc.category || 'Site Plan',
-              status: doc.status || 'Verified',
-              date: doc.date || '2026-08-01',
-              fileUrl: doc.fileUrl || createPdfBlobUrl(doc.title, proj.name, doc.category)
-            });
-          }
-        });
-      }
-    });
-    return docs;
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -486,22 +481,7 @@ function BuilderDashboard() {
 
       toast.success(`Project "${createdProj.name}" stored directly in MongoDB!`);
 
-      if (newProject.initialDocFileUrl) {
-        setCustomVaultDocs((prev) => [
-          {
-            id: `doc_init_${Date.now()}`,
-            title: newProject.initialDocTitle || newProject.initialDocFileName,
-            project: createdProj.name,
-            category: newProject.initialDocCategory,
-            status: 'Verified',
-            date: new Date().toISOString().split('T')[0],
-            fileUrl: newProject.initialDocFileUrl
-          },
-          ...prev
-        ]);
-      }
-
-      loadProjectsFromDatabase();
+      await loadProjectsFromDatabase();
 
       setNewProject({
         name: '',
@@ -564,7 +544,7 @@ function BuilderDashboard() {
     const docData = {
       title: docUploadForm.title.trim() || docUploadForm.fileName,
       category: docUploadForm.category,
-      status: 'Verified',
+      status: 'Under Review',
       date: new Date().toISOString().split('T')[0],
       fileUrl: fileUrlToUse
     };
@@ -572,21 +552,8 @@ function BuilderDashboard() {
     try {
       await addProjectDocumentInDB(targetProjId, docData);
 
-      setCustomVaultDocs((prev) => [
-        {
-          id: `custom_vault_${Date.now()}`,
-          title: docData.title,
-          project: targetProj.name,
-          category: docData.category,
-          status: 'Verified',
-          date: docData.date,
-          fileUrl: fileUrlToUse
-        },
-        ...prev
-      ]);
-
-      toast.success(`Document "${docData.title}" saved to Vault!`);
-      loadProjectsFromDatabase();
+      toast.success(`Document "${docData.title}" submitted for admin review!`);
+      await loadProjectsFromDatabase();
       setShowDocUploadModal(false);
       setDocUploadForm({ title: '', category: 'Site Plan', projectId: '', fileName: '', fileUrl: null });
     } catch {

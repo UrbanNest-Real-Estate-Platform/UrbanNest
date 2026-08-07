@@ -102,6 +102,7 @@ const builderSchema = new mongoose.Schema(
         fileUrl: {
           type: String,
           trim: true,
+          required: true,
         },
         status: {
           type: String,

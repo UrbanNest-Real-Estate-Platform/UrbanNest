@@ -30,18 +30,23 @@ import {
     FileText,
     UserCheck,
     UserX,
-    SlidersHorizontal
+    SlidersHorizontal,
+    ChevronDown,
+    ChevronUp,
+    Home
 } from "lucide-react";
 
-import { 
-    getDashboardStats, 
-    getPendingBuilders, 
-    verifyBuilder, 
+import {
+    getDashboardStats,
+    getPendingBuilders,
+    verifyBuilder,
     rejectBuilder,
     getAllUsers,
     getAllBuilders,
     deleteUser,
-    deleteBuilder
+    deleteBuilder,
+    deleteAdminProperty,
+    deleteAdminProject
 } from "../../services/adminService";
 
 import "./AdminDashboard.css";
@@ -88,6 +93,7 @@ const AdminDashboard = () => {
     const [managementFilter, setManagementFilter] = useState("all"); // "all" | "user" | "builder"
     const [searchQuery, setSearchQuery] = useState("");
     const [loadingManagement, setLoadingManagement] = useState(false);
+    const [expandedAccountId, setExpandedAccountId] = useState(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -211,9 +217,41 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleDeleteProperty = async (property, ownerName) => {
+        if (!window.confirm(`Delete property "${property.title}" owned by "${ownerName}"? This cannot be undone.`)) return;
+        try {
+            await deleteAdminProperty(property._id);
+            toast.success(`Property "${property.title}" deleted successfully`);
+            setAllUsersList((previous) => previous.map((user) => ({
+                ...user,
+                properties: (user.properties || []).filter((item) => item._id !== property._id)
+            })));
+            fetchStats();
+        } catch (error) {
+            console.error("Error deleting property:", error);
+            toast.error(error.response?.data?.message || "Failed to delete property");
+        }
+    };
+
+    const handleDeleteProject = async (project, builderName) => {
+        if (!window.confirm(`Delete project "${project.name}" from "${builderName}"? Its linked properties will also be deleted.`)) return;
+        try {
+            await deleteAdminProject(project._id);
+            toast.success(`Project "${project.name}" deleted successfully`);
+            setAllBuildersList((previous) => previous.map((builder) => ({
+                ...builder,
+                projects: (builder.projects || []).filter((item) => item._id !== project._id)
+            })));
+            fetchStats();
+        } catch (error) {
+            console.error("Error deleting project:", error);
+            toast.error(error.response?.data?.message || "Failed to delete project");
+        }
+    };
+
     const getFilteredAccounts = () => {
         let accounts = [];
-        
+
         if (managementFilter === "all" || managementFilter === "user") {
             accounts.push(...allUsersList.map(u => ({ ...u, accountType: "user" })));
         }
@@ -286,7 +324,7 @@ const AdminDashboard = () => {
 
     const tabNames = {
         overview: "Platform Overview",
-        verification: "User & Builder Verification",
+        verification: "Builder Verification",
         management: "User & Builder Management"
     };
 
@@ -314,15 +352,15 @@ const AdminDashboard = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    <button 
+                    <button
                         className={`nav-item ${activeTab === "overview" ? "active" : ""}`}
                         onClick={() => setActiveTab("overview")}
                     >
                         <LayoutDashboard size={18} />
                         <span>Platform Overview</span>
                     </button>
-                    
-                    <button 
+
+                    <button
                         className={`nav-item ${activeTab === "verification" ? "active" : ""}`}
                         onClick={() => setActiveTab("verification")}
                     >
@@ -333,7 +371,7 @@ const AdminDashboard = () => {
                         </span>
                     </button>
 
-                    <button 
+                    <button
                         className={`nav-item ${activeTab === "management" ? "active" : ""}`}
                         onClick={() => setActiveTab("management")}
                     >
@@ -367,13 +405,13 @@ const AdminDashboard = () => {
                         <h1>{tabNames[activeTab]}</h1>
                         <p className="calendar-date">{formatDate(time)}</p>
                     </div>
-                    
+
                     <div className="header-controls">
                         <div className="search-bar">
                             <Search size={16} className="search-icon" />
-                            <input 
-                                type="text" 
-                                placeholder="Search platform..." 
+                            <input
+                                type="text"
+                                placeholder="Search platform..."
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
@@ -382,10 +420,6 @@ const AdminDashboard = () => {
                                     }
                                 }}
                             />
-                        </div>
-                        <div className="notification-bell">
-                            <Bell size={18} />
-                            <span className="bell-badge"></span>
                         </div>
                     </div>
                 </header>
@@ -524,87 +558,80 @@ const AdminDashboard = () => {
                                             {pendingBuildersList.length} {pendingBuildersList.length === 1 ? "application" : "applications"}
                                         </span>
                                     </div>
-                                    
+
                                     <div className="applications-list">
                                         {pendingBuildersList.length === 0 ? (
                                             <div className="empty-state">No pending builder applications</div>
                                         ) : (
                                             pendingBuildersList.map(builder => {
-                                                const hasDocs = (builder.documents && builder.documents.length > 0) || (builder.projects && builder.projects.length > 0);
-                                                const docsCount = builder.documents ? builder.documents.length : (builder.projects ? builder.projects.length : 0);
+                                                // A project registration is not evidence that legal documents were submitted.
+                                                const submittedDocuments = (builder.documents || []).filter((doc) => doc.fileUrl);
+                                                const docsCount = submittedDocuments.length;
+                                                const hasDocs = docsCount > 0;
                                                 return (
-                                                <div className="application-item" key={builder._id}>
-                                                    <div className="app-icon-box">
-                                                        <HardHat className="app-icon" size={20} />
-                                                    </div>
-                                                    <div className="app-details">
-                                                        <div className="app-title-row">
-                                                            <h3>{builder.companyName}</h3>
-                                                            {!hasDocs && (
-                                                                <span className="status-badge-inline red-theme">Missing Docs</span>
-                                                            )}
+                                                    <div className="application-item" key={builder._id}>
+                                                        <div className="app-icon-box">
+                                                            <HardHat className="app-icon" size={20} />
                                                         </div>
-                                                        <p className="app-meta">RERA: {builder.registrationNumber} • Owner: {builder.ownerName || "N/A"}</p>
-                                                        
-                                                        <div className="app-info-row">
-                                                            <span className="info-item">
-                                                                <MapPin size={12} className="meta-icon" /> {getBuilderCity(builder.registrationNumber)}
-                                                            </span>
-                                                            <span className="info-item">
-                                                                {builder.projects ? builder.projects.length : 0} projects
-                                                            </span>
-                                                            <span className="info-item">
-                                                                {docsCount} documents submitted
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Document verification list */}
-                                                        {builder.documents && builder.documents.length > 0 ? (
-                                                            <div className="admin-builder-docs-list">
-                                                                <div className="admin-docs-header">Submitted Verification Documents:</div>
-                                                                <div className="admin-docs-grid">
-                                                                    {builder.documents.map((doc, dIdx) => (
-                                                                        <div className="admin-doc-pill" key={dIdx} onClick={() => setSelectedAdminDoc({ ...doc, builderName: builder.companyName, reraNo: builder.registrationNumber })}>
-                                                                            <FileText size={14} className="doc-icon-blue" />
-                                                                            <div className="admin-doc-pill-info">
-                                                                                <span className="doc-pill-title">{doc.title}</span>
-                                                                                <span className="doc-pill-category">{doc.category || "RERA Approval"}</span>
-                                                                            </div>
-                                                                            <div className="admin-doc-pill-right">
-                                                                                <span className={`doc-pill-status ${doc.status === 'Verified' ? 'verified' : 'review'}`}>
-                                                                                    {doc.status || "Under Review"}
-                                                                                </span>
-                                                                                <button className="doc-pill-view-btn">Inspect</button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                        <div className="app-details">
+                                                            <div className="app-title-row">
+                                                                <h3>{builder.companyName}</h3>
+                                                                {!hasDocs && (
+                                                                    <span className="status-badge-inline red-theme">Missing Docs</span>
+                                                                )}
                                                             </div>
-                                                        ) : (
-                                                            <div className="app-status-row">
-                                                                {builder.projects && builder.projects.length > 0 ? (
-                                                                    <span className="doc-status success-text">
-                                                                        <Check size={14} className="doc-icon" /> RERA Certificate verified via project registry
-                                                                    </span>
-                                                                ) : (
+                                                            <p className="app-meta">RERA: {builder.registrationNumber} • Owner: {builder.ownerName || "N/A"}</p>
+
+                                                            <div className="app-info-row">
+                                                                <span className="info-item">
+                                                                    <MapPin size={12} className="meta-icon" /> {getBuilderCity(builder.registrationNumber)}
+                                                                </span>
+                                                                <span className="info-item">
+                                                                    {builder.projects ? builder.projects.length : 0} projects
+                                                                </span>
+                                                                <span className="info-item">
+                                                                    {docsCount} documents submitted
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Document verification list */}
+                                                            {hasDocs ? (
+                                                                <div className="admin-builder-docs-list">
+                                                                    <div className="admin-docs-header">Submitted Verification Documents:</div>
+                                                                    <div className="admin-docs-grid">
+                                                                        {submittedDocuments.map((doc, dIdx) => (
+                                                                            <div className="admin-doc-pill" key={dIdx} onClick={() => setSelectedAdminDoc({ ...doc, builderName: builder.companyName, reraNo: builder.registrationNumber })}>
+                                                                                <FileText size={14} className="doc-icon-blue" />
+                                                                                <div className="admin-doc-pill-info">
+                                                                                    <span className="doc-pill-title">{doc.title}</span>
+                                                                                    <span className="doc-pill-category">{doc.category || "RERA Approval"}</span>
+                                                                                </div>
+                                                                                <div className="admin-doc-pill-right">
+                                                                                    <button className="doc-pill-view-btn">Inspect</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="app-status-row">
                                                                     <span className="doc-status error-text">
                                                                         <AlertCircle size={14} className="doc-icon" /> No legal documents submitted yet
                                                                     </span>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="app-actions">
+                                                            <button className="verify-action-btn" onClick={() => handleVerifyBuilder(builder._id)}>
+                                                                <Check size={14} /> Verify Builder
+                                                            </button>
+                                                            <button className="reject-action-btn" onClick={() => handleRejectBuilder(builder._id)}>
+                                                                <X size={14} /> Reject
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    <div className="app-actions">
-                                                        <button className="verify-action-btn" onClick={() => handleVerifyBuilder(builder._id)}>
-                                                            <Check size={14} /> Verify Builder
-                                                        </button>
-                                                        <button className="reject-action-btn" onClick={() => handleRejectBuilder(builder._id)}>
-                                                            <X size={14} /> Reject
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
+                                                );
                                             })
                                         )}
                                     </div>
@@ -618,9 +645,9 @@ const AdminDashboard = () => {
                         <div className="management-controls-bar">
                             <div className="mgmt-search-box">
                                 <Search size={16} className="mgmt-search-icon" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search users by name, email, phone, city or builders by company, RERA..." 
+                                <input
+                                    type="text"
+                                    placeholder="Search users by name, email, phone, city or builders by company, RERA..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -632,19 +659,19 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="mgmt-filter-pills">
-                                <button 
+                                <button
                                     className={`filter-pill ${managementFilter === "all" ? "active" : ""}`}
                                     onClick={() => setManagementFilter("all")}
                                 >
                                     All Accounts ({allUsersList.length + allBuildersList.length})
                                 </button>
-                                <button 
+                                <button
                                     className={`filter-pill ${managementFilter === "user" ? "active" : ""}`}
                                     onClick={() => setManagementFilter("user")}
                                 >
                                     <Users size={14} /> Users ({allUsersList.length})
                                 </button>
-                                <button 
+                                <button
                                     className={`filter-pill ${managementFilter === "builder" ? "active" : ""}`}
                                     onClick={() => setManagementFilter("builder")}
                                 >
@@ -716,10 +743,47 @@ const AdminDashboard = () => {
                                                                 </span>
                                                             )}
                                                         </div>
+
+                                                        <button
+                                                            className="account-assets-toggle"
+                                                            onClick={() => setExpandedAccountId((current) => current === acc._id ? null : acc._id)}
+                                                        >
+                                                            {acc.accountType === "user" ? <Home size={14} /> : <Building2 size={14} />}
+                                                            {acc.accountType === "user" ? `${(acc.properties || []).length} Properties` : `${(acc.projects || []).length} Projects`}
+                                                            {expandedAccountId === acc._id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                        </button>
+
+                                                        {expandedAccountId === acc._id && (
+                                                            <div className="account-assets-panel">
+                                                                {acc.accountType === "user" ? (
+                                                                    (acc.properties || []).length ? acc.properties.map((property) => (
+                                                                        <div className="account-asset-row" key={property._id}>
+                                                                            <div><strong>{property.title}</strong><span>{property.propertyType} · {property.listingType} · {property.address?.city || "Location unavailable"} · {formatCurrency(property.totalPrice)}</span></div>
+                                                                            <button className="asset-delete-btn" onClick={() => handleDeleteProperty(property, acc.name)}><Trash2 size={14} /> Delete</button>
+                                                                        </div>
+                                                                    )) : <p className="account-assets-empty">No properties listed by this user.</p>
+                                                                ) : (
+                                                                    (acc.projects || []).length ? acc.projects.map((project) => (
+                                                                        <div className="account-asset-row" key={project._id}>
+                                                                            <div><strong>{project.name}</strong><span>{project.location} · {project.availableUnits}/{project.totalUnits} units available · {project.status}</span></div>
+                                                                            <button className="asset-delete-btn" onClick={() => handleDeleteProject(project, acc.companyName)}><Trash2 size={14} /> Delete</button>
+                                                                        </div>
+                                                                    )) : <p className="account-assets-empty">No projects registered by this builder.</p>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <div className="mgmt-account-actions">
-                            {/* Action buttons removed – verification and deletion are handled in the Verification tab */}
+                                                        <button
+                                                            className="delete-action-btn"
+                                                            onClick={() => acc.accountType === "user"
+                                                                ? handleDeleteUserAccount(acc._id, acc.name)
+                                                                : handleDeleteBuilderAccount(acc._id, acc.companyName)}
+                                                        >
+                                                            <Trash2 size={14} /> Delete {acc.accountType === "user" ? "User" : "Builder"}
+                                                        </button>
+                                                        {/* Action buttons removed – verification and deletion are handled in the Verification tab */}
 
                                                     </div>
                                                 </div>
@@ -769,36 +833,16 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="admin-pdf-preview-box">
-                                <div className="pdf-paper">
-                                    <div className="pdf-header-seal">
-                                        <div>
-                                            <h2>OFFICIAL STATE RERA REGISTRATION AUTHORITY</h2>
-                                            <p>Legal Verification & Compliance Certificate</p>
-                                        </div>
-                                        <div className="seal-badge">OFFICIAL VERIFIED</div>
-                                    </div>
-                                    <div className="pdf-body-content">
-                                        <p><strong>Document Name:</strong> {selectedAdminDoc.title}</p>
-                                        <p><strong>Issuing Entity:</strong> {selectedAdminDoc.builderName}</p>
-                                        <p><strong>Registration Ref:</strong> {selectedAdminDoc.reraNo}</p>
-                                        <p><strong>Verification Category:</strong> {selectedAdminDoc.category}</p>
-                                        <hr className="pdf-hr" />
-                                        <h4>Legal Certification Notice</h4>
-                                        <p>
-                                            This official document certifies that <strong>{selectedAdminDoc.builderName}</strong> has deposited all required architectural site layouts, environmental clearances, and RERA compliance disclosures for verification by UrbanNest Platform Administrators.
-                                        </p>
-                                        <div className="pdf-signature-area">
-                                            <div>
-                                                <span>State Competent Authority</span>
-                                                <p>UrbanNest Admin Office</p>
-                                            </div>
-                                            <div className="digital-hash">
-                                                <span>Digital Signature Hash</span>
-                                                <code>SHA256:7a8f9b0c1d2e3f4a</code>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <iframe
+                                    src={selectedAdminDoc.fileUrl}
+                                    title="PDF Preview"
+                                    width="100%"
+                                    height="700px"
+                                    style={{
+                                        border: "none",
+                                        borderRadius: "12px"
+                                    }}
+                                />
                             </div>
                         </div>
                     </div>

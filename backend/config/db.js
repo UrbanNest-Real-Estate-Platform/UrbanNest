@@ -7,7 +7,6 @@ const connectDB = async () => {
         console.log(`MongoDB Connected: ${conn.connection.host}`);
     } catch (err) {
         console.log("MongoDB Connection Error: ", err.message);
-        console.log("⚠️ Please ensure MongoDB is running or update MONGO_URI in backend/.env");
     }
 }
 

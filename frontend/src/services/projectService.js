@@ -1,8 +1,13 @@
 import api from "./axios";
 
-// Fetch all builder projects from MongoDB
+// Fetch all projects (public listing)
 export const fetchProjectsFromDB = () => {
   return api.get("/projects");
+};
+
+// Fetch only the logged-in builder's projects
+export const fetchMyProjectsFromDB = () => {
+  return api.get("/projects/mine");
 };
 
 // Create a new project in MongoDB

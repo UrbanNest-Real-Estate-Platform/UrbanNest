@@ -1205,8 +1205,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: nowrap;
     flex-shrink: 0;
     margin-left: auto;
+    white-space: nowrap;
 }
 
 .doc-pill-status {
@@ -1703,6 +1705,80 @@
     align-self: center;
     flex-shrink: 0;
     margin-left: auto;
+}
+
+.account-assets-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 6px 9px;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 7px;
+    background: rgba(37, 99, 235, 0.08);
+    color: #93c5fd;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.account-assets-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.account-asset-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.account-asset-row > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.account-asset-row strong {
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.account-asset-row span,
+.account-assets-empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.asset-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    padding: 5px 8px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #fca5a5;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.asset-delete-btn:hover {
+    background: var(--color-red);
+    color: #fff;
 }
 
 .delete-action-btn {

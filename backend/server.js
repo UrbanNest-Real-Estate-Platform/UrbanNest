@@ -1,3 +1,7 @@
+const dns = require("dns");
+
+dns.setDefaultResultOrder("ipv4first");
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -16,6 +20,10 @@ const projectRoutes = require("./routes/projectRoutes.js");
 const mlRoutes = require("./routes/mlRoutes.js");
 
 dotenv.config();
+const fs = require("fs");
+console.log("Current directory:", process.cwd());
+console.log("Does .env exist?", fs.existsSync(".env"));
+
 connectDB();
 
 const app = express();

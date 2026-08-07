@@ -1,5 +1,22 @@
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
+const Builder = require("../models/Builder");
+
+const syncDocumentToBuilder = async (builderId, projectName, doc) => {
+  if (!builderId) return;
+
+  await Builder.findByIdAndUpdate(builderId, {
+    $push: {
+      documents: {
+        title: doc.title,
+        category: doc.category || "Site Plan",
+        project: projectName,
+        fileUrl: doc.fileUrl || null,
+        status: doc.status || "Under Review",
+      },
+    },
+  });
+};
 
 // Sample initial projects
 const SEED_PROJECTS = [
@@ -71,6 +88,46 @@ const SEED_PROJECTS = [
 ];
 
 let inMemoryProjects = [...SEED_PROJECTS];
+
+// @desc    Get projects for the logged-in builder only
+// @route   GET /api/projects/mine
+const getMyProjects = async (req, res) => {
+  try {
+    if (!req.builder) {
+      return res.status(403).json({
+        success: false,
+        message: "Builder access required",
+      });
+    }
+
+    const isDbConnected = mongoose.connection.readyState === 1;
+
+    if (isDbConnected) {
+      const projects = await Project.find({ builderId: req.builder._id }).sort({ createdAt: -1 });
+      return res.status(200).json({
+        success: true,
+        count: projects.length,
+        data: projects,
+      });
+    }
+
+    const projects = inMemoryProjects.filter(
+      (p) => p.builderId && p.builderId.toString() === req.builder._id.toString()
+    );
+
+    res.status(200).json({
+      success: true,
+      count: projects.length,
+      data: projects,
+    });
+  } catch (error) {
+    console.error("Error fetching builder projects:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch builder projects",
+    });
+  }
+};
 
 // @desc    Get all Projects
 // @route   GET /api/projects
@@ -148,18 +205,19 @@ const createProject = async (req, res) => {
       formattedAmenities = amenities.split(",").map(a => a.trim()).filter(Boolean);
     }
 
-    // Format documents array
-    let formattedDocs = [
-      {
-        title: `${name.replace(/\s+/g, '_')}_RERA_Approval.pdf`,
-        category: "RERA Approval",
-        status: "Verified",
-        date: new Date().toISOString().split('T')[0]
-      }
-    ];
-    if (Array.isArray(documents) && documents.length > 0) {
-      formattedDocs = documents;
-    }
+    // Never create a document record unless one was actually submitted. Builder
+    // documents must be reviewed by an admin before they can be verified.
+    const formattedDocs = Array.isArray(documents)
+      ? documents
+          .filter((doc) => doc && doc.title && doc.fileUrl)
+          .map((doc) => ({
+            title: doc.title.trim(),
+            category: doc.category || "RERA Approval",
+            status: req.builder ? "Under Review" : (doc.status || "Under Review"),
+            date: doc.date || new Date().toISOString().split("T")[0],
+            fileUrl: doc.fileUrl,
+          }))
+      : [];
 
     // Format unitsConfig array
     let formattedUnits = [
@@ -189,7 +247,8 @@ const createProject = async (req, res) => {
       description: description ? description.trim() : `New luxury development project (${name}).`,
       amenities: formattedAmenities,
       unitsConfig: formattedUnits,
-      documents: formattedDocs
+      documents: formattedDocs,
+      ...(req.builder && { builderId: req.builder._id }),
     };
 
     const isDbConnected = mongoose.connection.readyState === 1;
@@ -197,6 +256,26 @@ const createProject = async (req, res) => {
 
     if (isDbConnected) {
       project = await Project.create(newProjectData);
+
+      if (req.builder) {
+        await Builder.findByIdAndUpdate(req.builder._id, {
+          $push: {
+            projects: {
+              projectId: project._id,
+              projectName: project.name,
+              status: project.status,
+              launchYear: new Date().getFullYear(),
+            },
+          },
+        });
+
+        for (const doc of formattedDocs) {
+          await syncDocumentToBuilder(req.builder._id, project.name, {
+            ...doc,
+            status: "Under Review",
+          });
+        }
+      }
     } else {
       project = {
         _id: `mem_p_${Date.now()}`,
@@ -248,19 +327,48 @@ const addProjectDocument = async (req, res) => {
     const { title, category, date, status, fileUrl } = req.body;
     const isDbConnected = mongoose.connection.readyState === 1;
 
+    if (req.builder && (!title || !fileUrl)) {
+      return res.status(400).json({
+        success: false,
+        message: "A document title and file are required for builder submissions.",
+      });
+    }
+
+    const docStatus = req.builder ? "Under Review" : (status || "Under Review");
+
     const newDoc = {
       title: title || `Site_Plan_${Date.now().toString().slice(-4)}.pdf`,
       category: category || "Site Plan",
-      status: status || "Verified",
+      status: docStatus,
       date: date || new Date().toISOString().split('T')[0],
       fileUrl: fileUrl || null
     };
 
     if (isDbConnected) {
       const project = await Project.findById(req.params.id);
-      if (project) {
-        project.documents.push(newDoc);
-        await project.save();
+      if (!project) {
+        return res.status(404).json({
+          success: false,
+          message: "Project not found",
+        });
+      }
+
+      if (
+        req.builder &&
+        project.builderId &&
+        project.builderId.toString() !== req.builder._id.toString()
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to modify this project",
+        });
+      }
+
+      project.documents.push(newDoc);
+      await project.save();
+
+      if (req.builder) {
+        await syncDocumentToBuilder(req.builder._id, project.name, newDoc);
       }
     } else {
       if (inMemoryProjects.length > 0) {
@@ -280,7 +388,7 @@ const addProjectDocument = async (req, res) => {
       data: {
         title: req.body.title || `Site_Plan_${Date.now().toString().slice(-4)}.pdf`,
         category: req.body.category || "Site Plan",
-        status: "Verified",
+        status: "Under Review",
         date: new Date().toISOString().split('T')[0],
         fileUrl: req.body.fileUrl || null
       }
@@ -290,6 +398,7 @@ const addProjectDocument = async (req, res) => {
 
 module.exports = {
   getProjects,
+  getMyProjects,
   createProject,
   addProjectDocument
 };
