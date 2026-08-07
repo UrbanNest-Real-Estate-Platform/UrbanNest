@@ -623,7 +623,7 @@ const reviewPropertyRequest = async (req, res) => {
                     tenantId: propertyRequest.requesterId,
                     startDate: propertyRequest.startDate,
                     endDate: propertyRequest.endDate,
-                    monthlyRent: property.totalPrice,
+                    monthlyRent: property.totalPrice + property.maintenance,
                     isActive: true
                 });
 
