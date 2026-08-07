@@ -78,7 +78,7 @@ export default function PostProperty() {
     if (isEditMode && !userHasEditedAddress.current) return;
 
     const delayDebounceFn = setTimeout(async () => {
-      if (locality.trim().length > 3 || city.trim().length > 3) {
+      if (locality.trim().length > 2 || city.trim().length > 2) {
         try {
           const query = `${locality}, ${city}`;
           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
@@ -141,6 +141,9 @@ export default function PostProperty() {
         }
       };
       fetchProperty();
+    }
+    else {
+      setCity(JSON.parse(localStorage.getItem('user'))?.cityOfResidence || '');
     }
   }, [id, isEditMode]);
 
