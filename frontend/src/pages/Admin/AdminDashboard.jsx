@@ -135,7 +135,7 @@ const AdminDashboard = () => {
     }, [activeTab]);
 
     const fetchManagementData = async () => {
-        setLoadingManagement(true);
+        setLoadingManagement(true); 
         try {
             const [usersRes, buildersRes] = await Promise.all([
                 getAllUsers(),
@@ -797,7 +797,6 @@ const AdminDashboard = () => {
                 )}
             </main>
 
-            {/* Admin Document Verification Inspection Modal */}
             {selectedAdminDoc && (
                 <div className="admin-modal-overlay" onClick={() => setSelectedAdminDoc(null)}>
                     <div className="admin-modal-container" onClick={(e) => e.stopPropagation()}>

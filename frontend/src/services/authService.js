@@ -18,5 +18,16 @@ export const loginBuilder = (loginData) => {
 
 export const loginAdmin = (loginData) =>{
     return api.post("/auth/admin/login",loginData);
-}
+};
 
+export const forgotPassword = (data) => {
+    return api.post("/auth/forgot-password", data);
+};
+
+export const resetPassword = (token, data) => {
+    return api.post(`/auth/reset-password/${token}`, data);
+};
+
+export const resetPasswordWithOtp = (data) => {
+    return api.post("/auth/reset-password", data);
+};

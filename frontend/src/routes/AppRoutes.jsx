@@ -7,6 +7,8 @@ import RegisterChoice from "../pages/RegisterChoice/RegisterChoice";
 
 import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
+import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword/ResetPassword";
 
 import BuilderLogin from "../pages/Builder/BuilderLogin";
 import BuilderRegister from "../pages/Builder/BuilderRegister";
@@ -42,6 +44,8 @@ function AppRoutes() {
                 <Route path="/login" element={<LoginChoice />} />
                 <Route path="/login/user" element={<Login />} />
                 <Route path="/login/builder" element={<BuilderLogin />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
 
                 <Route
                     path="/login"
@@ -195,7 +199,6 @@ function AppRoutes() {
                         </AdminProtectedRoute>
                     }
                 />
-
 
             </Routes>
 

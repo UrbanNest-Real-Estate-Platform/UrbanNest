@@ -147,7 +147,7 @@ function Login() {
 
                     <div className="login-options">
 
-                        <Link to="#">
+                        <Link to="/forgot-password">
                             Forgot Password?
                         </Link>
 
