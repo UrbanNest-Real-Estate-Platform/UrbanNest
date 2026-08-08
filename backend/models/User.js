@@ -30,6 +30,22 @@ const userSchema = new mongoose.Schema(
             required: true
         },
 
+        passwordResetOtpHash: {
+            type: String,
+            select: false
+        },
+
+        passwordResetOtpExpiresAt: {
+            type: Date,
+            select: false
+        },
+
+        passwordResetOtpAttempts: {
+            type: Number,
+            default: 0,
+            select: false
+        },
+
         savedPropertyIds: [
             {
                 type: mongoose.Schema.Types.ObjectId,

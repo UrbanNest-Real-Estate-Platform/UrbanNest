@@ -1,14 +1,27 @@
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const validator = require("validator");
 const generateToken = require("../utils/generateToken");
+const { sendPasswordResetEmail, sendPasswordResetOtpEmail } = require("../utils/sendEmail");
 const Builder = require('../models/Builder');
 const Admin = require('../models/Admin');
 
 // In-memory fallback stores when MongoDB is offline
 const inMemoryUsers = [];
 const inMemoryBuilders = [];
+
+const JWT_SECRET = process.env.JWT_SECRET || "urbannest_jwt_secret_key_2026";
+
+const generatePasswordResetToken = (userId) => {
+    return jwt.sign(
+        { id: userId, purpose: "password-reset" },
+        JWT_SECRET,
+        { expiresIn: "1h" }
+    );
+};
 
 const registerUser = async (req, res) => {
     try {
@@ -502,6 +515,216 @@ const logoutUser = async (req, res) => {
     });
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+        const email = req.body.email?.trim();
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide your email address"
+            });
+        }
+
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address"
+            });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({
+                success: false,
+                message: "Password reset is unavailable while the database is offline"
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(200).json({
+                success: true,
+                message: "If an account exists with that email, a verification code has been sent"
+            });
+        }
+
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        user.passwordResetOtpHash = crypto.createHash("sha256").update(otp).digest("hex");
+        user.passwordResetOtpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        user.passwordResetOtpAttempts = 0;
+        await user.save();
+
+        try {
+            await sendPasswordResetOtpEmail({
+                to: user.email,
+                name: user.name,
+                otp
+            });
+        } catch (emailError) {
+            user.passwordResetOtpHash = undefined;
+            user.passwordResetOtpExpiresAt = undefined;
+            user.passwordResetOtpAttempts = 0;
+            await user.save();
+            console.error("Forgot Password Email Error:", emailError);
+            return res.status(500).json({
+                success: false,
+                message: "Unable to send reset email. Please try again later."
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "If an account exists with that email, a verification code has been sent"
+        });
+    } catch (error) {
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+    }
+};
+
+const resetPasswordWithOtp = async (req, res) => {
+    try {
+        const { email, otp, password, confirmPassword } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
+
+        if (!normalizedEmail || !otp || !password || !confirmPassword) {
+            return res.status(400).json({ success: false, message: "Email, verification code, and both password fields are required" });
+        }
+
+        if (!validator.isEmail(normalizedEmail) || !/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ success: false, message: "Enter a valid email address and 6-digit verification code" });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Passwords do not match" });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ success: false, message: "Password reset is unavailable while the database is offline" });
+        }
+
+        const user = await User.findOne({ email: normalizedEmail }).select("+passwordResetOtpHash +passwordResetOtpExpiresAt +passwordResetOtpAttempts");
+        const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+        if (!user || !user.passwordResetOtpHash || !user.passwordResetOtpExpiresAt || user.passwordResetOtpExpiresAt < new Date()) {
+            return res.status(400).json({ success: false, message: "The verification code is invalid or has expired" });
+        }
+
+        if (user.passwordResetOtpAttempts >= 5) {
+            return res.status(429).json({ success: false, message: "Too many incorrect attempts. Request a new code." });
+        }
+
+        if (user.passwordResetOtpHash !== otpHash) {
+            user.passwordResetOtpAttempts += 1;
+            await user.save();
+            return res.status(400).json({ success: false, message: "The verification code is invalid or has expired" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        user.passwordResetOtpHash = undefined;
+        user.passwordResetOtpExpiresAt = undefined;
+        user.passwordResetOtpAttempts = 0;
+        await user.save();
+
+        res.status(200).json({ success: true, message: "Password reset successful. You can now log in with your new password." });
+    } catch (error) {
+        console.error("OTP Password Reset Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password, confirmPassword } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset link"
+            });
+        }
+
+        if (!password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide and confirm your new password"
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters long"
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match"
+            });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({
+                success: false,
+                message: "Password reset is unavailable while the database is offline"
+            });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset link"
+            });
+        }
+
+        if (decoded.purpose !== "password-reset") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset link"
+            });
+        }
+
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset link"
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successful. You can now log in with your new password."
+        });
+    } catch (error) {
+        console.error("Reset Password Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server Error"
+        });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -509,5 +732,8 @@ module.exports = {
     loginBuilder,
     getCurrentUser,
     loginAdmin,
-    logoutUser
+    logoutUser,
+    forgotPassword,
+    resetPassword,
+    resetPasswordWithOtp
 };
